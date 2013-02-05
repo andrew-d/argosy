@@ -15,7 +15,7 @@ group :backend do
 end
 
 group :frontend do
-  guard :coffeescript, :output => 'frontend/src-js/' do
+  guard :coffeescript, :bare => true, :output => 'frontend/src-js/' do
     watch(%r{^frontend/src/(.+\.coffee)$})
   end
 
