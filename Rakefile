@@ -1,4 +1,5 @@
 require 'pathname'
+require 'listen'
 
 desc 'compiles coffeescript to javascript'
 task :coffee do
@@ -32,5 +33,20 @@ task :build_js => [:coffee] do
   # Run the optimizer in the correct directory.
   Dir.chdir('frontend') do
     sh 'r.js -o app.build.js'
+  end
+end
+
+task :build => [:build_js]
+
+
+task :watch do
+  dir_path = './frontend'
+
+  puts "Building and watching for changes in #{dir_path}"
+  sh 'rake build'
+
+  Listen.to dir_path do
+    puts 'File changed, rebuilding...'
+    sh 'rake build'
   end
 end
