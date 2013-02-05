@@ -3,6 +3,7 @@ GEM
   specs:
     listen (0.7.2)
     rake (10.0.3)
+    rb-fsevent (0.9.3)
 
 PLATFORMS
   ruby
@@ -10,3 +11,4 @@ PLATFORMS
 DEPENDENCIES
   listen (~> 0.7.2)
   rake (~> 10.0.3)
+  rb-fsevent (~> 0.9.1)

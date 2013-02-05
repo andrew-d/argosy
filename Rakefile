@@ -36,9 +36,12 @@ task :build_js => [:coffee] do
   end
 end
 
+
+desc "top-level build task"
 task :build => [:build_js]
 
 
+desc "watch for and rebuild whenever a file changes"
 task :watch do
   dir_path = './frontend'
 
