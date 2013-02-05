@@ -1,5 +1,5 @@
 ({
-    appDir: './src',
+    appDir: './src-js',
     baseUrl: './',
     dir: './build',
     paths: {

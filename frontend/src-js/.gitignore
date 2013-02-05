@@ -1,0 +1,2 @@
+# This directory is used for compiled CoffeeScript, and thus should be ignored.
+*.js
