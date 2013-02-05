@@ -1,5 +1,24 @@
 source 'http://rubygems.org'
 
-gem "rake", "~> 10.0.3"
-gem "listen", "~> 0.7.2"
-gem "rb-fsevent", "~> 0.9.1"
+group :test, :development do
+  gem 'guard'
+
+  gem 'guard-bundler'
+  gem 'guard-coffeescript'
+  gem 'guard-process'
+  gem 'guard-shell'
+
+  gem 'rb-inotify', :require => false
+  gem 'rb-fsevent', :require => false
+  gem 'wdm', :platforms => [:mswin, :mingw], :require => false
+
+  # Make color work on Windows.
+  gem 'win32console', :platforms => [:mswin, :mingw]
+
+  # Terminal notifier for OS X.  I'm not a huge fan of this, since Gemfile.lock
+  # is no longer constant across platforms, but cross-platform consistency is
+  # probably worth it.
+  if RUBY_PLATFORM =~ /darwin/
+    gem 'terminal-notifier-guard'
+  end
+end
