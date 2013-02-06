@@ -5,12 +5,15 @@ group :test, :development do
 
   gem 'guard-bundler'
   gem 'guard-coffeescript'
+  gem 'guard-livereload'
   gem 'guard-process'
   gem 'guard-shell'
 
   gem 'rb-inotify', :require => false
   gem 'rb-fsevent', :require => false
   gem 'wdm', :platforms => [:mswin, :mingw], :require => false
+
+  gem 'rb-readline'
 
   # Make color work on Windows.
   gem 'win32console', :platforms => [:mswin, :mingw]

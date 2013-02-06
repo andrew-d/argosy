@@ -37,4 +37,8 @@ EOG
       end
     end
   end
+
+  guard :livereload do
+    watch(%r{frontend/build/.+\.(css|js|html)})
+  end
 end
