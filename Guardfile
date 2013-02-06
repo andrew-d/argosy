@@ -14,28 +14,31 @@ group :backend do
   end
 end
 
+def build_with_requirejs
+  colored(34) do              # blue!
+    Dir.chdir('frontend') do
+      system 'r.js -o app.build.js'
+    end
+
+    # Write our proper .gitignore, since it keeps getting clobbered.
+    File.open('frontend/build/.gitignore', 'w') do |f|
+      f.write <<-EOG
+# This directory is used for compiled CoffeeScript, and thus should be ignored.
+*.js
+*.txt
+EOG
+    end
+  end
+end
+
 group :frontend do
   guard :coffeescript, :bare => true, :output => 'frontend/src-js/' do
     watch(%r{^frontend/src/(.+\.coffee)$})
   end
 
   guard :shell do
-    watch(%r{^frontend/src-js/(.+)$}) do |m|
-      colored(34) do              # blue!
-        Dir.chdir('frontend') do
-          system 'r.js -o app.build.js'
-        end
-
-        # Write our proper .gitignore, since it keeps getting clobbered.
-        File.open('frontend/build/.gitignore', 'w') do |f|
-          f.write <<-EOG
-# This directory is used for compiled CoffeeScript, and thus should be ignored.
-*.js
-*.txt
-EOG
-        end
-      end
-    end
+    watch(%r{^frontend/src-js/(.+)$}) {|m| build_with_requirejs }
+    watch(%r{^frontend/app\.build\.js$}) {|m| build_with_requirejs }
   end
 
   guard :livereload do
