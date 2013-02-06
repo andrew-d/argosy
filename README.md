@@ -2,7 +2,7 @@
 
 ## What is Argosy?
 
-This is a side-project of mine that I've been meaning to write for a while.  In short, it's a Backbone.js app that helps you organize, tag, and search through all your media files.
+This is a side-project of mine that I've been meaning to write for a while.  In short, it's a Backbone.js webapp that helps you organize, tag, and search through all your media files.
 
 NOTE: This is currently in development.  Chances are, it won't actually do anything useful for you.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-from flask import Flask
+from flask import Flask, request
 from flask.ext.restful import Resource, Api
 from flask.ext.sqlalchemy import SQLAlchemy
 
@@ -14,6 +14,23 @@ if 'ARGOSY_SETTINGS' in os.environ:
 # Create DB and API resource.
 db = SQLAlchemy(app)
 api = Api(app)
+
+
+# Table for the many-to-many relationship between media and tags.
+media_tags = db.Table("media_tags",
+                  db.Column("media_key", db.String, db.ForeignKey("media.id")),
+                  db.Column("tag_id", db.Integer, db.ForeignKey("tags.id"))
+                  )
+
+
+# Table for the many-to-many relationship between media and groups.
+media_groups = db.Table("media_groups",
+                    db.Column("media_key", db.String, db.ForeignKey("media.id")),
+                    db.Column("group_id", db.Integer, db.ForeignKey("mediagroups.id"))
+                    )
+
+
+
 
 
 class MediaType(db.Model):
@@ -96,27 +113,29 @@ class MediaGroup(db.Model):
         return "<MediaGroup %s>" % (self.name,)
 
 
-# Table for the many-to-many relationship between media and tags.
-media_tags = db.Table("media_tags",
-                  db.Column("media_key", db.String, db.ForeignKey("media.id")),
-                  db.Column("tag_id", db.Integer, db.ForeignKey("tags.id"))
-                  )
-
-
-# Table for the many-to-many relationship between media and groups.
-media_groups = db.Table("media_groups",
-                    db.Column("media_key", db.String, db.ForeignKey("media.id")),
-                    db.Column("group_id", db.Integer, db.ForeignKey("mediagroups.id"))
-                    )
-
-
-
 class HelloWorld(Resource):
     def get(self):
         return {'hello': 'asdf'}
 
 
+class UploadResource(Resource):
+    def post(self):
+        print("Uploaded files: " + repr(request.files))
+        return {}
+
+
 api.add_resource(HelloWorld, '/')
+api.add_resource(UploadResource, '/upload')
+
+
+# Allow CORS
+@app.after_request
+def set_cors(response):
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+
+    return response
 
 
 if __name__ == '__main__':
