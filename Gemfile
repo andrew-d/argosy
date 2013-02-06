@@ -24,4 +24,7 @@ group :test, :development do
   if RUBY_PLATFORM =~ /darwin/
     gem 'terminal-notifier-guard'
   end
+
+  # Foreman will run our processes.
+  gem 'foreman'
 end
