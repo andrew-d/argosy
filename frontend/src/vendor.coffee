@@ -1,4 +1,4 @@
-define ["jquery", "underscore", "backbone", "modernizr", "handlebars"], (jQuery, _, Backbone, Modernizr, Handlebars) ->
+define ["jquery", "underscore", "backbone", "modernizr", "handlebars", "marionette"], (jQuery, _, Backbone, Modernizr, Handlebars, Marionette) ->
     r =
         'jQuery'     : jQuery,
         '$'          : jQuery,
@@ -6,5 +6,5 @@ define ["jquery", "underscore", "backbone", "modernizr", "handlebars"], (jQuery,
         'Backbone'   : Backbone,
         'Modernizr'  : Modernizr,
         'Handlebars' : Handlebars,
+        'Marionette' : Marionette,
 
-    r
