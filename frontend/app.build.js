@@ -10,21 +10,27 @@
         'underscore'   : '../vendor/lodash',
         'handlebars'   : '../vendor/handlebars',
         'backbone'     : '../vendor/backbone',
+        'respond'      : '../vendor/respond.src',
+
+        // Backbone.Marionette stuff.
+        'marionette'            : '../vendor/backbone.marionette',
+        'backbone.babysitter'   : '../vendor/backbone.babysitter',
+        'backbone.wreqr'        : '../vendor/backbone.wreqr',
 
         // This depends on all vendor libraries
-        'vendor'       : 'vendor',
+        'vendor'        : 'vendor',
 
         // Application code.
-        'app'          : 'application',
+        'argosy'        : 'main',
     },
     modules: [
         {
             name: 'vendor',
-            include: ['vendor']
+            include: ['vendor'],
         },
         {
-            name: 'app',
-            exclude: ['vendor']
+            name: 'argosy',
+            exclude: ['vendor'],
         },
     ],
     shim: {
@@ -34,9 +40,14 @@
         'backbone': {
             deps: ['underscore', 'jquery'],
             exports: 'Backbone'
+        },
+        'marionette' : {
+            exports : 'Backbone.Marionette',
+            deps : ['backbone']
         }
     },
 
     // Disable CSS optimization
     optimizeCss: 'none',
+    optimize: 'none',
 })
