@@ -71,7 +71,16 @@
             </footer>
         </div>
 
-        <script src="js/main.js"></script>
+        <script src="js/require.js"></script>
+        <script>
+          require.config({
+            baseUrl: 'js/'
+          });
+
+          requirejs(['vendor', 'app'], function(vendor, app) {
+            // App logic should be started.
+          });
+        </script>
 
         <script>
             var _gaq=[['_setAccount','UA-XXXXX-X'],['_trackPageview']];

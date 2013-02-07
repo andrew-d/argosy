@@ -1,3 +1,5 @@
+require 'fileutils'
+
 # Simple color helper.
 def colored(code, &block)
   puts "\033[#{code.to_s}m"
@@ -19,15 +21,6 @@ def build_with_requirejs
     Dir.chdir('frontend') do
       system 'r.js -o app.build.js'
     end
-
-    # Write our proper .gitignore, since it keeps getting clobbered.
-    File.open('frontend/build/.gitignore', 'w') do |f|
-      f.write <<-EOG
-# This directory is used for compiled CoffeeScript, and thus should be ignored.
-*.js
-*.txt
-EOG
-    end
   end
 end
 
@@ -39,6 +32,22 @@ group :frontend do
   guard :shell do
     watch(%r{^frontend/src-js/(.+)$}) {|m| build_with_requirejs }
     watch(%r{^frontend/app\.build\.js$}) {|m| build_with_requirejs }
+
+    watch(%r{^frontend/public/(.+)$}) do |m|
+      colored(34) do
+        puts 'Copying public to build dir...'
+        FileUtils::cp_r('frontend/public/.', 'frontend/build')
+      end
+    end
+
+    watch(%r{^frontend/build-js/(.+)$}) do |m|
+      colored(34) do
+        puts 'Copying JS to build dir'
+        FileUtils::mkdir_p('frontend/build/')
+        FileUtils::cp('frontend/build-js/app.js', 'frontend/build/js/')
+        FileUtils::cp('frontend/build-js/vendor.js', 'frontend/build/js/')
+      end
+    end
   end
 
   guard :livereload do

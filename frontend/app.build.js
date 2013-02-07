@@ -1,7 +1,7 @@
 ({
     appDir: './src-js',
     baseUrl: './',
-    dir: './build',
+    dir: './build-js',
     paths: {
         // 3rd-party vendor libraries
         'json2'        : '../vendor/json2',

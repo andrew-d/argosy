@@ -1,8 +1,2 @@
-# This directory is used for our compiled site, and thus should be ignored.
-*.js
-*.txt
-*.html
-*.css
-*.png
-*.jpg
-*.gif
+# Ignore everything in this directory.
+*.*
