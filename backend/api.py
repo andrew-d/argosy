@@ -5,11 +5,11 @@ from __future__ import absolute_import, print_function, division, with_statement
 import os
 import sys
 from flask import Flask, request
-from flask.ext.restful import Resource, Api, reqparse
+from flask.ext.restful import Api
 
 from .middleware import MethodRewriteMiddleware
 from .models import *
-from .resources import *
+from .resources.all import *
 
 
 # Create app and configure.  Note: order matters - default comes first.
@@ -24,7 +24,6 @@ api = Api(app)
 
 # Add middleware.
 app.wsgi_app = MethodRewriteMiddleware(app.wsgi_app)
-
 
 # Set up routes.
 api.add_resource(IndexResource, '/')
