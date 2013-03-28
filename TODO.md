@@ -17,3 +17,9 @@
 - Each media type needs the following
   - Storage (in a flat file, in the DB, etc)
   - Optional
+
+## Organization
+
+- Each item can be organized in a group
+  - Groups are displayed on a single page
+  - Groups are ordered - and display in order

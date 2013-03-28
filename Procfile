@@ -1,2 +1,1 @@
-guard:      ./bin/guard
-api:        python ./backend/api.py
+api:        python ./backend.py
