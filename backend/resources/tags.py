@@ -12,6 +12,7 @@ tags_post_parser.add_argument('tag', type=str, required=True, help='Tag cannot b
 tags_get_parser = reqparse.RequestParser()
 tags_get_parser.add_argument('page', type=int, help='Page could not be converted')
 
+
 class TagsResource(Resource):
     """
     This class lets you add a new tag.

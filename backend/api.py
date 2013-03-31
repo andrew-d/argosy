@@ -31,7 +31,8 @@ api.add_resource(MediaResource, '/media/<string:media_id>')
 api.add_resource(ThumbnailResource, '/thumbnails/<string:media_id>')
 api.add_resource(TagsResource, '/tags/')
 api.add_resource(TagResource, '/tags/<string:tag_id>')
-api.add_resource(TagAliasResource, '/aliases/')
+api.add_resource(TagAliasesResource, '/aliases/')
+api.add_resource(TagAliasResource, '/aliases/<string:alias_id>')
 
 
 @app.after_request
