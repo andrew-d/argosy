@@ -1,4 +1,4 @@
-define 'main', ['app', 'dom'], ->
+dep.define 'main', ['app', 'dom'], ->
   App = window.App
 
   App.start()

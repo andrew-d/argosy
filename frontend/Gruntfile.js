@@ -12,11 +12,11 @@ module.exports = function(grunt) {
           'vendor/debug/json2.js',
           'vendor/debug/jquery-1.9.1.js',
           'vendor/debug/modernizr.js',
-          'vendor/debug/lodash.js',
+          'vendor/debug/lodash.compat.js',
           'vendor/debug/backbone.js',
-          'vendor/debug/backbone.babysitter.js',
-          'vendor/debug/backbone.wreqr.js',
-          'vendor/debug/backbone.marionette.js',
+          'vendor/debug/backbone.marionette.js',    // NOTE: this bundled build
+                                                    // also includes babysitter
+                                                    // and wreqr.
           'vendor/debug/handlebars.js',
           'vendor/debug/respond.src.js',
           'vendor/debug/dep.js',
@@ -37,7 +37,7 @@ module.exports = function(grunt) {
           'vendor/min/modernizr.min.js',
           'vendor/min/lodash.compat.min.js',
           'vendor/min/backbone-min.js',
-          'vendor/min/backbone.marionette.min.js',  // NOTE: the minified build
+          'vendor/min/backbone.marionette.min.js',  // NOTE: this bundled build
                                                     // also includes babysitter
                                                     // and wreqr.
           'vendor/min/handlebars.min.js',           // Manually minified.
