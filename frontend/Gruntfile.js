@@ -7,19 +7,40 @@ module.exports = function(grunt) {
     // Concatenate vendor libraries together.
     concat: {
       vendor: {
+        // Note: Order is important, since these aren't using AMD builds.
         src: [
-          'vendor/json2.js',
-          'vendor/jquery-1.9.1.js',
-          'vendor/modernizr.js',
-          'vendor/lodash.js',
-          'vendor/backbone.js',
-          'vendor/backbone.babysitter.js',
-          'vendor/backbone.wreqr.js',
-          'vendor/backbone.marionette.js',
-          'vendor/handlebars.js',
-          'vendor/respond.src.js',
+          'vendor/debug/json2.js',
+          'vendor/debug/jquery-1.9.1.js',
+          'vendor/debug/modernizr.js',
+          'vendor/debug/lodash.js',
+          'vendor/debug/backbone.js',
+          'vendor/debug/backbone.babysitter.js',
+          'vendor/debug/backbone.wreqr.js',
+          'vendor/debug/backbone.marionette.js',
+          'vendor/debug/handlebars.js',
+          'vendor/debug/respond.src.js',
         ],
         dest: 'build/vendor.js'
+      },
+
+      // This task concatenates vendor pre-minified libraries.  The reason we
+      // use this rather than do it ourselves is because I don't want to have
+      // to remember what settings each library can be minified with - and
+      // also, an individual library's developers will presumably know what
+      // minification options achieve the best compression.
+      vendor_min: {
+        // Note: order is the same as above.
+        src: [
+          'vendor/min/json2.min.js',
+          'vendor/min/jquery-1.9.1.min.js',
+          'vendor/min/modernizr.min.js',
+          'vendor/min/lodash.compat.min.js',
+          'vendor/min/backbone-min.js',
+          'vendor/min/backbone.marionette.min.js',
+          'vendor/min/handlebars.min.js',
+          'vendor/min/respond.min.js',
+        ],
+        dest: 'build/vendor.min.js',
       },
     },
 
@@ -55,6 +76,9 @@ module.exports = function(grunt) {
 
     // Minify the built coffeescript files.
     uglify: {
+      options: {
+        report: 'min',
+      },
       app: {
         options: {
           banner: '/*! <%= pkg.name %>, built: <%= grunt.template.today("yyyy-mm-dd") %> */\n'
@@ -62,10 +86,6 @@ module.exports = function(grunt) {
         src: 'build/<%= pkg.name %>.js',
         dest: 'build/<%= pkg.name %>.min.js',
       },
-      vendor: {
-        src: 'build/vendor.js',
-        dest: 'build/vendor.min.js',
-      }
     },
 
     // Cleanup
@@ -101,7 +121,7 @@ module.exports = function(grunt) {
     //      - When we modify any coffeescript files in src/, build our app
     //      - When we modify any test files, rebuild the test JS files
     //      - When any JS files in the vendor directory are changed, rebuild
-    //        the concatenated vendor file
+    //        the appropriate concatenated or regular file.
     //      - When any built JS files have been changed, re-test
     watch: {
       // lint: {
@@ -117,8 +137,12 @@ module.exports = function(grunt) {
         tasks: ['coffee:test', 'coffee:test_helpers'],
       },
       vendor: {
-        files: ['vendor/*.js'],
+        files: ['vendor/debug/*.js'],
         tasks: ['concat:vendor'],
+      },
+      vendor_min: {
+        files: ['vendor/min/*.js'],
+        tasks: ['concat:vendor_min'],
       },
       test: {
         files: [
@@ -127,7 +151,7 @@ module.exports = function(grunt) {
           'build/test.js',
           'build/test_helpers.js',
           'build/vendor.js',
-          ],
+        ],
         tasks: ['jasmine'],
       },
     }
