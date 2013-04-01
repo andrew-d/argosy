@@ -1,6 +1,1 @@
-*.gem
-.bundle
-tmp
-
-# Because I use bundler to generate binstubs
-bin
+node_modules
