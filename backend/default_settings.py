@@ -1,7 +1,7 @@
 # This file contains default settings for argosy.
 # --------------------------------------------------
 DEBUG = True
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/test.db'
+SQLALCHEMY_DATABASE_URI = 'postgresql://localhost/argosy'
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
 # Note: this is overridden in production.

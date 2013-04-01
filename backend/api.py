@@ -11,10 +11,12 @@ from .middleware import MethodRewriteMiddleware
 from .models import *
 from .resources.all import *
 
+from . import default_settings
+
 
 # Create app and configure.  Note: order matters - default comes first.
 app = Flask(__name__)
-app.config.from_pyfile('argosy.default_settings')
+app.config.from_object(default_settings)
 if 'ARGOSY_SETTINGS' in os.environ:
     app.config.from_envvar('ARGOSY_SETTINGS')
 
