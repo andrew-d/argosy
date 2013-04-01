@@ -170,8 +170,5 @@ module.exports = function(grunt) {
 
   // Register tasks
   grunt.registerTask('default', ['concat', 'coffee', 'uglify']);
-  grunt.registerTask('test', ['coffeelint']);
+  grunt.registerTask('test', ['coffeelint', 'jasmine']);
 };
-
-
-
