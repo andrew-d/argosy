@@ -1,0 +1,2 @@
+$ ->
+  dep.define('dom')

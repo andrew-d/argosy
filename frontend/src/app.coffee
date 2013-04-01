@@ -1,2 +1,2 @@
-define ['backbone', 'jquery'], (Backbone, $) ->
-  app = new Backbone.Marionette.Application()
+dep.define 'app', [], ->
+  window.App = new Backbone.Marionette.Application()

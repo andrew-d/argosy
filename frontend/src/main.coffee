@@ -1,3 +1,5 @@
-define ['backbone', 'app'], (Backbone, app) ->
-  app.start()
+define 'main', ['app', 'dom'], ->
+  App = window.App
+
+  App.start()
   Backbone.history.start()

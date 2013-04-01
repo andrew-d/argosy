@@ -32,13 +32,15 @@ module.exports = function(grunt) {
       vendor_min: {
         // Note: order is the same as above.
         src: [
-          'vendor/min/json2.min.js',
+          'vendor/min/json2.min.js',                // Manually minified.
           'vendor/min/jquery-1.9.1.min.js',
           'vendor/min/modernizr.min.js',
           'vendor/min/lodash.compat.min.js',
           'vendor/min/backbone-min.js',
-          'vendor/min/backbone.marionette.min.js',
-          'vendor/min/handlebars.min.js',
+          'vendor/min/backbone.marionette.min.js',  // NOTE: the minified build
+                                                    // also includes babysitter
+                                                    // and wreqr.
+          'vendor/min/handlebars.min.js',           // Manually minified.
           'vendor/min/respond.min.js',
           'vendor/debug/dep.min.js',
         ],
