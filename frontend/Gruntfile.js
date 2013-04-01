@@ -19,6 +19,7 @@ module.exports = function(grunt) {
           'vendor/debug/backbone.marionette.js',
           'vendor/debug/handlebars.js',
           'vendor/debug/respond.src.js',
+          'vendor/debug/dep.js',
         ],
         dest: 'build/vendor.js'
       },
@@ -39,6 +40,7 @@ module.exports = function(grunt) {
           'vendor/min/backbone.marionette.min.js',
           'vendor/min/handlebars.min.js',
           'vendor/min/respond.min.js',
+          'vendor/debug/dep.min.js',
         ],
         dest: 'build/vendor.min.js',
       },
