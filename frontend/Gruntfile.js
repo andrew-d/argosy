@@ -21,7 +21,7 @@ module.exports = function(grunt) {
           'vendor/debug/respond.src.js',
           'vendor/debug/dep.js',
         ],
-        dest: 'build/vendor.js'
+        dest: 'build/js/vendor.js'
       },
 
       // This task concatenates vendor pre-minified libraries.  The reason we
@@ -44,7 +44,7 @@ module.exports = function(grunt) {
           'vendor/min/respond.min.js',
           'vendor/debug/dep.min.js',
         ],
-        dest: 'build/vendor.min.js',
+        dest: 'build/js/vendor.min.js',
       },
     },
 
@@ -55,7 +55,7 @@ module.exports = function(grunt) {
           joined: true
         },
         files: {
-          'build/<%= pkg.name %>.js': ['src/**/*.coffee']
+          'build/js/<%= pkg.name %>.js': ['coffee/**/*.coffee']
         },
       },
 
@@ -64,7 +64,7 @@ module.exports = function(grunt) {
           joined: true,
         },
         files: {
-          'build/tests.js': ['test/spec/*.coffee'],
+          'build/js/tests.js': ['test/spec/*.coffee'],
         },
       },
 
@@ -73,7 +73,7 @@ module.exports = function(grunt) {
           joined: true,
         },
         files: {
-          'build/test_helpers.js': ['test/helpers/*.coffee'],
+          'build/js/test_helpers.js': ['test/helpers/*.coffee'],
         },
       },
     },
@@ -87,34 +87,40 @@ module.exports = function(grunt) {
         options: {
           banner: '/*! <%= pkg.name %>, built: <%= grunt.template.today("yyyy-mm-dd") %> */\n'
         },
-        src: 'build/<%= pkg.name %>.js',
-        dest: 'build/<%= pkg.name %>.min.js',
+        src: 'build/js/<%= pkg.name %>.js',
+        dest: 'build/js/<%= pkg.name %>.min.js',
       },
     },
 
     // Cleanup
     clean: {
       app: {
-        src: ['build/<%= pkg.name %>.js', 'build/<%= pkg.name %>.*.js'],
+        src: ['build/js/<%= pkg.name %>.js', 'build/js/<%= pkg.name %>.*.js'],
       },
       vendor: {
-        src: ['build/vendor.js'],
+        src: ['build/js/vendor.js', 'build/js/vendor.min.js'],
+      },
+      favicon: {
+        src: ['build/favicon.ico'],
+      },
+      css: {
+        src: ['build/css/*.css'],
       },
     },
 
     // Coffeescript linting
     coffeelint: {
-      app: ['src/**/*.coffee'],
+      app: ['coffee/**/*.coffee'],
     },
 
     // Jasmine testing
     jasmine: {
       app: {
-        src: ['build/<%= pkg.name %>.js'],
+        src: ['build/js/<%= pkg.name %>.js'],
         options: {
-          vendor: ['build/vendor.js'],
-          specs: ['build/test.js'],
-          helpers: ['build/test_helpers.js'],
+          vendor: ['build/js/vendor.js'],
+          specs: ['build/js/test.js'],
+          helpers: ['build/js/test_helpers.js'],
         },
       },
     },
@@ -122,7 +128,7 @@ module.exports = function(grunt) {
     // Watch and test.
     // General idea:
     //      - When we modify any of coffeelint's files, re-lint
-    //      - When we modify any coffeescript files in src/, build our app
+    //      - When we modify any coffeescript files in coffee/, build our app
     //      - When we modify any test files, rebuild the test JS files
     //      - When any JS files in the vendor directory are changed, rebuild
     //        the appropriate concatenated or regular file.
@@ -133,7 +139,7 @@ module.exports = function(grunt) {
       //   tasks: ['coffeelint']
       // },
       build: {
-        files: ['src/**/*.coffee'],
+        files: ['coffee/**/*.coffee'],
         tasks: ['coffee:app'],
       },
       build_test: {
@@ -151,22 +157,37 @@ module.exports = function(grunt) {
       test: {
         files: [
           'Gruntfile.js',
-          'build/<%= pkg.name %>.js',
-          'build/test.js',
-          'build/test_helpers.js',
-          'build/vendor.js',
+          'build/js/<%= pkg.name %>.js',
+          'build/js/test.js',
+          'build/js/test_helpers.js',
+          'build/js/vendor.js',
         ],
         tasks: ['jasmine'],
       },
     },
 
     cache_bust: {
-      test: {
-        src: 'public/bindex.html',
-        dest: 'public/bindex.built.html',
+      app: {
+        src: 'build/index.html',
+        dest: 'build/index.html',
         length: 10,
+        method: 'filename',                     // Valid: 'filename' (default),
+                                                //         'querystring'
       },
-    }
+    },
+
+    copy: {
+      favicon: {
+        files: [
+          {src: 'favicon.ico', dest: 'build/favicon.ico'},
+        ],
+      },
+      index: {
+        files: [
+          {src: 'index.html', dest: 'build/index.html'},
+        ],
+      },
+    },
   });
 
   // Load the plugin that provides our tasks.
@@ -174,16 +195,17 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-coffee');
   grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-jasmine');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   // Register cache-busting task.  This task will run each source file through
   // underscore.js's template function, with the following function defined:
-  //    cbust(file_path)
-  // This function, when called, will take the given file, copy it to a new,
-  // unique path in the same directory, and then output the given file name in
-  // the template.
+  //    cbust(url)
+  // This function, when called, will take the file at the given url, copy it
+  // to a new, unique path in the same directory, and then output the given
+  // file name in the template.
   grunt.registerMultiTask('cache_bust', 'custom cache-busting logic', function() {
     var data = this.data;
 
@@ -191,51 +213,86 @@ module.exports = function(grunt) {
     var path = require('path');
     var crypto = require('crypto');
     var fs = require('fs');
+    var url = require('url');
+    var _ = grunt.util._;
 
-    var cbust = function(file_path) {
-      // The file name will be relative to the input file.
+    var cbust = function(resource_url) {
+      // The input value is a resource URL relative to the input file.  We
+      // parse the URL, and then get the file path from that.
+      var urlObj = url.parse(resource_url, true);
+
+      // The real path to this item on-disk is the relative path from
+      // the directory of the source file to the path name.
       var real_path = path.normalize(path.join(path.dirname(data.src),
-                                               file_path
+                                               urlObj.pathname
                                                ));
-
-      // Split the file name.
-      var name_components = path.basename(file_path).split('.');
 
       // Hash the file.
       var hash = crypto.createHash('sha256').update(grunt.file.read(real_path));
-      var hex = hash.digest('hex');
 
-      // Got the hash.  Get the first 8 characters, add it as a new file
-      // name segment, right before the extension.
-      var component_len = data.length || 8;
-      name_components.splice(name_components.length - 1, 0, hex.slice(0, component_len));
+      // Got the hash.  Extract the specified number of characters (default: 8).
+      var cache_str = hash.digest('hex').slice(0, data.length || 8);
 
-      // Make a new file path.
-      var new_name = name_components.join('.');
-      var new_real_path = path.join(path.dirname(real_path), new_name);
-      var new_rel_path = path.join(path.dirname(file_path), new_name);
+      if( cache_str.length <= 2 ) {
+        grunt.log.write("NOTE: It is not recommended to use cache-busting " +
+                        "strings of length 2 or lower.");
+      }
 
-      // console.log('New real path: ' + new_real_path);
-      // console.log('New relative path: ' + new_rel_path);
+      var return_path;
+      var method = data.method || 'filename';
+      if( 'filename' === method ) {
+        // Split the URL, and place the cache string as a new component
+        // just before the extension.
+        var name_components = _.last(urlObj.pathname.split('/')).split('.');
+        name_components.splice(name_components.length - 1, 0,
+                               cache_str
+                               );
 
-      // Copy the input file to the output.
-      grunt.file.copy(real_path, new_real_path);
+        var new_name = name_components.join('.');
+
+        // We copy to the new path name.
+        var dest_path = path.join(path.dirname(real_path), new_name);
+        // console.log('Destination path: ' + dest_path);
+        grunt.file.copy(real_path, dest_path);
+
+        return_path = _.initial(urlObj.pathname.split('/')).concat(new_name).join('/');
+      } else if( 'querystring' === method ) {
+        // Remove any existing "search" entry.
+        urlObj.search = null;
+
+        // Add new querystring entry of our cache string.
+        urlObj.query[cache_str] = '1';
+        return_path = url.format(urlObj);
+      }
+
+      // console.log('Return path: ' + return_path);
 
       // Return the new relative path.
-      return new_rel_path;
+      return return_path;
     };
 
-    // Read the source.
+    // Read the source that we're given.
     var file_contents = grunt.file.read(data.src);
 
-    // Template it!
-    var new_contents = grunt.util._.template(file_contents, {cbust: cbust});
+    // Allow the user to override template variables, or settings.
+    var settings = data.settings || {};
+    var templ_data = {};
+    if( data.vars ) {
+        var vars = data.vars;
+        if( typeof vars === 'function' ) {
+            vars = vars();
+        }
+        _.extend(templ_data, vars);
+    }
+    _.extend(templ_data, {cbust: cbust});
+
+    var new_contents = _.template(file_contents, {cbust: cbust}, settings);
 
     // Write the new contents to the destination.
     grunt.file.write(data.dest, new_contents);
   });
 
   // Register tasks
-  grunt.registerTask('default', ['concat', 'coffee', 'uglify']);
+  grunt.registerTask('default', ['concat', 'coffee', 'uglify', 'copy', 'cache_bust']);
   grunt.registerTask('test', ['coffeelint', 'jasmine']);
 };
