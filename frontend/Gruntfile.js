@@ -95,7 +95,7 @@ module.exports = function(grunt) {
     // Cleanup
     clean: {
       app: {
-        src: ['build/<%= pkg.name %>.js', 'build/<%= pkg.name %>.min.js'],
+        src: ['build/<%= pkg.name %>.js', 'build/<%= pkg.name %>.*.js'],
       },
       vendor: {
         src: ['build/vendor.js'],
@@ -158,17 +158,82 @@ module.exports = function(grunt) {
         ],
         tasks: ['jasmine'],
       },
+    },
+
+    cache_bust: {
+      test: {
+        src: 'public/bindex.html',
+        dest: 'public/bindex.built.html',
+        length: 10,
+      },
     }
   });
 
   // Load the plugin that provides our tasks.
-  grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-contrib-coffee');
-  grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-contrib-jasmine');
   grunt.loadNpmTasks('grunt-coffeelint');
+  grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-contrib-coffee');
+  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-jasmine');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-watch');
+
+  // Register cache-busting task.  This task will run each source file through
+  // underscore.js's template function, with the following function defined:
+  //    cbust(file_path)
+  // This function, when called, will take the given file, copy it to a new,
+  // unique path in the same directory, and then output the given file name in
+  // the template.
+  grunt.registerMultiTask('cache_bust', 'custom cache-busting logic', function() {
+    var data = this.data;
+
+    // Require libraries.
+    var path = require('path');
+    var crypto = require('crypto');
+    var fs = require('fs');
+
+    var cbust = function(file_path) {
+      // The file name will be relative to the input file.
+      var real_path = path.normalize(path.join(path.dirname(data.src),
+                                               file_path
+                                               ));
+
+      // Split the file name.
+      var name_components = path.basename(file_path).split('.');
+
+      // Hash the file.
+      var hash = crypto.createHash('sha256').update(grunt.file.read(real_path));
+      var hex = hash.digest('hex');
+
+      // Got the hash.  Get the first 8 characters, add it as a new file
+      // name segment, right before the extension.
+      var component_len = data.length || 8;
+      name_components.splice(name_components.length - 1, 0, hex.slice(0, component_len));
+
+      // Make a new file path.
+      var new_name = name_components.join('.');
+      var new_real_path = path.join(path.dirname(real_path), new_name);
+      var new_rel_path = path.join(path.dirname(file_path), new_name);
+
+      // console.log('New real path: ' + new_real_path);
+      // console.log('New relative path: ' + new_rel_path);
+
+      // Copy the input file to the output.
+      grunt.file.copy(real_path, new_real_path);
+
+      // Return the new relative path.
+      return new_rel_path;
+    };
+
+    // Read the source.
+    var file_contents = grunt.file.read(data.src);
+
+    // Template it!
+    var new_contents = grunt.util._.template(file_contents, {cbust: cbust});
+
+    // Write the new contents to the destination.
+    grunt.file.write(data.dest, new_contents);
+  });
 
   // Register tasks
   grunt.registerTask('default', ['concat', 'coffee', 'uglify']);
