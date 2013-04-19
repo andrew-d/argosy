@@ -6,13 +6,6 @@ import types
 import pkgutil
 from flask.ext.restful import Resource
 
-# from .tag import TagResource
-# from .tags import TagsResource
-# from .media import MediaResource
-# from .thumbnail import ThumbnailResource
-# from .tagalias import TagAliasResource
-# from .index import IndexResource
-
 # Find all modules in this directory and save all Resources that we find.
 resources = []
 prefix = __name__ + "."
@@ -21,6 +14,11 @@ for importer, modname, ispkg in pkgutil.iter_modules(__path__, prefix):
 
     for attr in dir(curr):
         val = getattr(curr, attr)
+
+        # We only consider resources that are:
+        #   1. A type or class
+        #   2. A subclass of the Resource type
+        #   3. Not the Resource type itself.
         if (isinstance(val, (type, types.ClassType)) and
             issubclass(val, Resource) and val is not Resource):
             resources.append(val)

@@ -21,28 +21,17 @@ media_groups = db.Table("media_groups",
                     )
 
 
-class MediaType(db.Model):
-    __tablename__ = 'mediatypes'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return "<MediaType %r>" % (self.name,)
-
-
 class Media(db.Model):
     __tablename__ = 'media'
 
-    # Media is indexed by the SHA-256 hash of its contents.
-    id = db.Column(db.String(32), primary_key=True)
+    def __init__(self, id):
+        self.id = id
 
-    type_id = db.Column(db.Integer, db.ForeignKey('mediatypes.id'), nullable=False)
-    type = db.relationship('MediaType',
-                           backref=db.backref('media', lazy='dynamic'))
+    # Media is indexed by the SHA-256 hash of its contents.
+    id = db.Column(db.String(64), primary_key=True)
+
+    # The type of media.
+    mime = db.Column(db.String, nullable=False)
 
     # Tags and groups use the Tables below.
     tags = db.relationship("Tag", secondary=media_tags,

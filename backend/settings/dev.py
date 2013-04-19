@@ -10,3 +10,7 @@ DEBUG = True
 
 # Use a local PostgreSQL database for development.
 SQLALCHEMY_DATABASE_URI = 'postgresql://localhost/argosy'
+
+# Argosy-specific settings.
+ARGOSY_DATA_STORE    = 'dir'
+ARGOSY_DATA_LOCATION = os.path.join(os.path.dirname(__file__), '..', '..', 'data')

@@ -10,6 +10,7 @@ from flask.ext.restful import Api
 from .middleware import MethodRewriteMiddleware
 from .models import *
 from .resources.all import *
+from .storage import DirectoryFileStorage, MemoryFileStorage
 
 from .settings import default
 
@@ -29,9 +30,20 @@ api = Api(app)
 # Add middleware.
 app.wsgi_app = MethodRewriteMiddleware(app.wsgi_app)
 
+# Create storage.
+if app.config['ARGOSY_DATA_STORE'] == 'dir':
+    app.store = DirectoryFileStorage(app.config['ARGOSY_DATA_LOCATION'])
+elif app.config['ARGOSY_DATA_STORE'] == 'memory':
+    app.store = MemoryFileStorage()
+else:
+    raise RuntimeError("Invalid storage type '%s'" % (
+        app.config['ARGOSY_DATA_STORE']
+    ))
+
 # Set up routes.
 api.add_resource(IndexResource, '/')
-api.add_resource(MediaResource, '/media/<string:media_id>')
+api.add_resource(MediaResource, '/media/<string:media_id>', endpoint='media_endpoint')
+api.add_resource(MediaUploadResource, '/media/')
 api.add_resource(ThumbnailResource, '/thumbnails/<string:media_id>')
 api.add_resource(TagsResource, '/tags/')
 api.add_resource(TagResource, '/tags/<string:tag_id>')
