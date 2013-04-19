@@ -11,14 +11,16 @@ from .middleware import MethodRewriteMiddleware
 from .models import *
 from .resources.all import *
 
-from . import default_settings
+from .settings import default
 
 
 # Create app and configure.  Note: order matters - default comes first.
 app = Flask(__name__)
-app.config.from_object(default_settings)
-if 'ARGOSY_SETTINGS' in os.environ:
-    app.config.from_envvar('ARGOSY_SETTINGS')
+app.config.from_object(default)
+if 'ARGOSY_SETTINGS_MOD' in os.environ:
+    app.config.from_object(os.environ['ARGOSY_SETTINGS_MOD'])
+if 'ARGOSY_SETTINGS_FILE' in os.environ:
+    app.config.from_envvar('ARGOSY_SETTINGS_FILE')
 
 # Create DB and API resource.
 db.init_app(app)
