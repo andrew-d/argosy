@@ -92,6 +92,43 @@ module.exports = function(grunt) {
       },
     },
 
+    // Compile SASS to CSS.
+    sass: {
+      main: {
+        // bundleExec: true,
+        files: {
+          'build/css/main.css': [
+            'scss/main.scss',
+          ],
+        },
+      },
+    },
+
+    // Copy some files to the build directory.
+    copy: {
+      favicon: {
+        files: [
+          {src: 'favicon.ico', dest: 'build/favicon.ico'},
+        ],
+      },
+      index: {
+        files: [
+          {src: 'index.html', dest: 'build/index.html'},
+        ],
+      },
+    },
+
+    // Process the index file to cache-bust.
+    cache_bust: {
+      app: {
+        src: 'build/index.html',
+        dest: 'build/index.html',
+        length: 10,
+        method: 'filename',                     // Valid: 'filename' (default),
+                                                //         'querystring'
+      },
+    },
+
     // Cleanup
     clean: {
       app: {
@@ -165,29 +202,6 @@ module.exports = function(grunt) {
         tasks: ['jasmine'],
       },
     },
-
-    cache_bust: {
-      app: {
-        src: 'build/index.html',
-        dest: 'build/index.html',
-        length: 10,
-        method: 'filename',                     // Valid: 'filename' (default),
-                                                //         'querystring'
-      },
-    },
-
-    copy: {
-      favicon: {
-        files: [
-          {src: 'favicon.ico', dest: 'build/favicon.ico'},
-        ],
-      },
-      index: {
-        files: [
-          {src: 'index.html', dest: 'build/index.html'},
-        ],
-      },
-    },
   });
 
   // Load the plugin that provides our tasks.
@@ -197,6 +211,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-jasmine');
+  grunt.loadNpmTasks('grunt-contrib-sass');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
@@ -293,6 +308,6 @@ module.exports = function(grunt) {
   });
 
   // Register tasks
-  grunt.registerTask('default', ['concat', 'coffee', 'uglify', 'copy', 'cache_bust']);
+  grunt.registerTask('default', ['concat', 'coffee', 'uglify', 'sass', 'copy', 'cache_bust']);
   grunt.registerTask('test', ['coffeelint', 'jasmine']);
 };
