@@ -5,6 +5,9 @@ from .default import *
 # Set debug on.
 DEBUG = True
 
+# Development server name.
+SERVER_NAME = 'argosy.dev'
+
 # Hosts allowed to see debug toolbar.
 # DEBUG_TB_HOSTS = ('127.0.0.1',)
 
