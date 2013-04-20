@@ -62,7 +62,10 @@ class MediaUploadResource(Resource):
         media = Media(key)
         media.mime = mime
 
-        # TODO: set tags/group
+        # TODO: set tags/group.  We should create any that don't exist in this
+        # codepath - for simplicity.
+
+        # Add / commit the media.
         db.session.add(media)
         db.session.commit()
 
