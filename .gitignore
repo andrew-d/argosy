@@ -1,10 +1,1 @@
-# Stuff from Node.js
-node_modules
-
-# Stuff from Ruby
-.bundle
-.ruby-version
-Gemfile.lock
-
-# Stuff from Python.
 *.pyc
