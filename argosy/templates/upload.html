@@ -1,13 +1,158 @@
 {% extends 'base.html' %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='css/jquery.fileupload.css') }}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
   <h1>Upload</h1>
 
-  <form role='form' action='/upload' method='POST' enctype='multipart/form-data'>
+  <form id='fileupload' role='form' action='/upload' method='POST' enctype='multipart/form-data'>
     <div class='form-group'>
-      <label for='upload'>Select picture to upload</label>
-      <input type='file' id='upload' name='upload'>
+      <input type='file' id='upload' name='upload' multiple>
     </div>
 
-    <button type='submit' class='btn btn-default'>Upload</button>
+    <div class='form-group'>
+      <input type='text' id='tags' name='tags' class='form-control' placeholder='Tags to apply'>
+    </div>
+
+    <div class='form-group'>
+      <input type='text' id='group' name='group' class='form-control' placeholder='Group (optional)'>
+    </div>
+
+    <button id='submit' type='submit' class='btn btn-default'>Upload</button>
   </form>
+
+
+  <h3>Files to be Uploaded</h3>
+  <table id='files-table' class='table table-striped'>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Commands</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+
+    <!-- Need this for the JS below -->
+    <tbody>
+    </tbody>
+  </table>
+
+  {#
+  <h3>Files Previously Uploaded</h3>
+  <table id='completed-table' class='table table-striped'>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Commands</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+
+    <!-- Need this for the JS below -->
+    <tbody>
+    </tbody>
+  </table>
+  #}
+
+{% endblock %}
+
+{% block js %}
+  {{ super() }}
+  {# Required #}
+  <script src="{{ url_for('static', filename='js/jquery.ui.widget.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.iframe-transport.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.fileupload.js') }}"></script>
+
+  {# Optional: for image previews and such #}
+  <script src="{{ url_for('static', filename='js/load-image.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.fileupload-process.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.fileupload-image.js') }}"></script>
+
+  <script id='table-entry-template' type='text/html'>
+    <tr>
+      <td class='row-number'><%= num %></td>
+      <td><%= file.files[0].name %></td>
+      <td><%= file.files[0].size %></td>
+      <td>
+        <button type='button' class='btn btn-danger btn-xs delete-button'>
+          <span class="glyphicon glyphicon-remove"></span> Delete
+        </button>
+      </td>
+      <td class='upload-status'>Not uploaded</td>
+    </tr>
+  </script>
+
+  <script>
+    $(function () {
+        'use strict';
+
+        var table_entry_template = _.template($('#table-entry-template').html()),
+            files = [];
+
+
+        var reNumber = function() {
+            var ctr = 0;
+
+            $('#files-table > tbody > tr').each(function(el) {
+                ctr += 1;
+                $(this).find('td.row-number').html(ctr);
+            });
+        };
+
+        $('#fileupload').fileupload({
+            url: '/upload',
+            dataType: 'json',
+            add: function(e, data) {
+                // Append the file to our array.
+                files.push(data);
+
+                // Create a new table entry.
+                var table_entry = $(table_entry_template({num: files.length, file: data}));
+                $('#files-table > tbody:last').append(table_entry);
+
+                // When the delete button is pushed, remove ourselves..
+                table_entry.find('.delete-button').on('click', function(e) {
+                    e.preventDefault();
+
+                    // Remove from array and from DOM first.
+                    files = _.without(files, data);
+                    $(this).parent().parent().remove();
+
+                    reNumber();
+                });
+            },
+        });
+
+        $('#submit').on('click', function(e) {
+            e.preventDefault();
+
+            var table_rows = $('#files-table > tbody > tr');
+
+            _.each(files, function(file, i) {
+                var curr_row = $(table_rows[i]);
+
+                curr_row.find('.upload-status').html('Uploading...');
+                file.submit();
+
+                // TODO: errors?
+                curr_row.find('.upload-status').html('Uploaded');
+
+                // TODO: move somewhere else?
+                curr_row.remove();
+            });
+
+            // Clear all files from the list.
+            files = [];
+
+            // Clear group.
+            $('#group').val('');
+        });
+    });
+  </script>
 {% endblock %}

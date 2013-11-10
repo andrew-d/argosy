@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% if banner is defined %}
+    <h3>{{ banner }}</h3>
+  {% endif %}
+
+  <div class="row">
+    {% for item in object_list %}
+      <div class="col-sm-6 col-md-3">
+        <a href="{{ url_for('single_item', id=item.hash) }}" class="thumbnail">
+          <img src="{{ url_for('single_item_thumb', id=item.hash) }}">
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  <ul class="pager">
+    {% if page > 1 %}
+      <li class="previous"><a href="./?page={{ page - 1 }}">&larr; Newer</a></li>
+    {% endif %}
+    {% if page < pagination.get_pages() %}
+      <li class="next"><a href="./?page={{ page + 1 }}">Older &rarr;</a></li>
+    {% endif %}
+  </ul>
+
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h3>Search</h3>
+
+  <div class="row">
+    <form id='searchForm' class='form-inline' role="form" action='/search' method='GET'>
+      <div class="form-group col-sm-3">
+        <label class='sr-only' for="allOf">All of the tags:</label>
+        <input type="text" class="form-control" name='allOf' id="allOf" placeholder='All the tags' value="{{ allOf }}">
+      </div>
+      <div class="form-group col-sm-3">
+        <label class='sr-only' for="anyOf">Any of the tags:</label>
+        <input type="text" class="form-control" name='anyOf' id="anyOf" placeholder='Any of the tags' value="{{ anyOf }}">
+      </div>
+      <div class="form-group col-sm-3">
+        <label class='sr-only' for="noneOf">None of the tags:</label>
+        <input type="text" class="form-control" name='noneOf' id="noneOf" placeholder="None of the tags" value="{{ noneOf }}">
+      </div>
+
+      <div class='col-sm-3'>
+        <button type="submit" class="btn btn-primary">Search</button>
+        <button type="button" class="btn btn-default" id='reset'>Reset</button>
+      </div>
+    </form>
+  </div>
+
+  {% if object_list is defined %}
+    <h3>Search Results</h3>
+    <div class='row'>
+      {% for item in object_list %}
+        <div class="col-sm-6 col-md-3">
+          <a href="{{ url_for('single_item', id=item.hash) }}" class="thumbnail">
+            <img src="{{ url_for('single_item_thumb', id=item.hash) }}">
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block js %}
+  {{ super() }}
+
+  <script>
+      $('#reset').on('click', function(e) {
+          $('#searchForm :input').not(':button, :submit, :reset, :hidden').val('');
+      });
+  </script>
+{% endblock %}

@@ -1,6 +1,46 @@
 {% extends 'base.html' %}
 {% block content %}
-  <img src='/items/{{ item.hash }}/data'>
+  <div class="row">
+    <img src='/items/{{ item.hash }}/data' style='max-width:100%'>
 
-  <h3>{{ item.hash }}</h3>
+    <h3>Information</h3>
+    <table class='table table-condensed'>
+      <tbody>
+        <tr>
+          <td>Hash:</td>
+          <td>{{ item.hash }}</td>
+        </tr>
+        <tr>
+          <td>File size:</td>
+          <td>{{ item.file_size | filesizeformat }}</td>
+        </tr>
+        <tr>
+          <td>Tags:</td>
+          <td>
+            {% for t in tags | sort(attribute='name') -%}
+              <a href='/tags/{{ t.id }}'>{{ t.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+        <tr>
+          <td>Groups:</td>
+          <td>
+            {% for g in groups | sort(attribute='name') -%}
+              <a href='/groups/{{ g.id }}'>{{ g.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+
+        <tr>
+          <td>Created On:</td>
+          <td>
+            {{ item.created_on.strftime('%A, %B %d %Y, %H:%M:%S %Z') }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {# TODO: add modal for editing tags #}
+
 {% endblock %}
