@@ -1,5 +1,10 @@
 *.pyc
-data
-thumbs
-*.db
 .DS_Store
+
+# Directories
+node_modules
+bower_components
+
+# Test data
+data
+*.db

@@ -9,35 +9,34 @@ import datetime
 import baker
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-import backend
-
-from backend.models import *
-from backend import config
-
-
-bind_db(config.get_db())
-
+import argosy
+from argosy.app import app, db
 
 
 @baker.command
 def syncdb():
+    # Find all models.
+    models = []
+    for attr in dir(argosy.app):
+        item = getattr(argosy.app, attr)
+        if isinstance(item, type) and issubclass(item, db.Model):
+            models.append(item)
+    print("Found %d models" % (len(models),))
+
     print("Synchronizing database...", end='')
     try:
-        drop_tables()
+        for model in models:
+            model.drop_table()
+            model.create_table()
     except Exception as e:
-        print("Error while dropping: %s" % (e,))
-    create_tables()
+        print("Error while creating: %s" % (e,))
     print(" done!")
 
 
 @baker.command
 def run(port=8000):
-    from backend.app import app
-    from werkzeug.serving import run_simple
-
-    host = '127.0.0.1'
     try:
-        run_simple(host, port, app)
+        app.run(port=port)
     except KeyboardInterrupt:
         print('')
 
