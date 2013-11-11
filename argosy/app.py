@@ -79,6 +79,9 @@ class Item(db.Model):
     width  = IntegerField()
     height = IntegerField()
 
+    # Whether it's an animated GIF (and thus, needs to be served as such).
+    is_animated_gif = BooleanField()
+
     # Group (optional)
     group = ForeignKeyField(Group, null=True, related_name='items')
 
@@ -109,30 +112,47 @@ def process_uploaded_file(uploaded_file):
     uploaded_file.seek(0)
 
     try:
-        i = Item.get(Item.hash == file_hash)
+        return Item.get(Item.hash == file_hash)
     except Item.DoesNotExist:
-        # Create an image from the file data.
-        img = Image.open(uploaded_file)
+        pass
 
-        # Save this image to the data directory.
-        with closing(image_store.get_file_object(file_hash, create=True)) as new_image:
+    # Create an image from the file data.
+    img = Image.open(uploaded_file)
+
+    # See if this image is an animated GIF.
+    try:
+        img.seek(1)
+    except EOFError:
+        is_animated = False
+    else:
+        is_animated = True
+    finally:
+        img.seek(0)
+
+    # If the image is animated, we need to save it as-is, since PIL does not
+    # support writing animated GIFs.
+    with closing(image_store.get_file_object(file_hash, create=True)) as new_image:
+        if is_animated:
+            new_image.write(file_data)
+        else:
             img.save(new_image, format='PNG')
 
-        # Create thumbnail.
-        thumb = img.resize((128, 128))
+    # Create thumbnail.
+    img.thumbnail((128, 128), resample=Image.ANTIALIAS)
 
-        # Save the thumbnail.
-        with closing(thumb_store.get_file_object(file_hash, create=True)) as new_thumb:
-            thumb.save(new_thumb, format='PNG')
+    # Save the thumbnail.
+    with closing(thumb_store.get_file_object(file_hash, create=True)) as new_thumb:
+        img.save(new_thumb, format='PNG')
 
-        i = Item(
-            hash=file_hash,
-            created_on=datetime.datetime.utcnow(),
-            file_size=len(file_data),
-            width=img.size[0],
-            height=img.size[1]
-        )
-        i.save(force_insert=True)
+    i = Item(
+        hash=file_hash,
+        created_on=datetime.datetime.utcnow(),
+        file_size=len(file_data),
+        is_animated_gif=is_animated,
+        width=img.size[0],
+        height=img.size[1]
+    )
+    i.save(force_insert=True)
 
     return i
 
@@ -266,6 +286,9 @@ def delete_item(id):
 def single_item_data(id):
     item = get_object_or_404(Item.select(), Item.hash == id)
     fp = image_store.get_file_object(id)
+    if item.is_animated_gif:
+        return send_file(fp, mimetype='image/gif')
+
     return send_file(fp, mimetype='image/png')
 
 
