@@ -23,10 +23,6 @@ from peewee import *
 from .store import DirectoryStore
 
 
-logging.basicConfig(format="%(asctime)-15s: %(message)s",
-                    level=logging.DEBUG)
-
-
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_object('argosy.default_config')
 app.config.from_pyfile('argosy.cfg', silent=True)
@@ -51,8 +47,25 @@ def split_tags(s):
     return ret
 
 
+def join_tags(l):
+    ret = []
+    for x in l:
+        # TODO: doesn't handle things with quotes
+        if set(' \t\n\r\f\v') & set(x):
+            ret.append('"' + x + '"')
+        else:
+            ret.append(x)
+
+    return ' '.join(ret)
+
+
 ######################################################################
 ## Models
+
+class Group(db.Model):
+    id = PrimaryKeyField()
+    name = CharField()
+
 
 class Item(db.Model):
     # SHA-256 hash of contents of item, also PK
@@ -66,24 +79,8 @@ class Item(db.Model):
     width  = IntegerField()
     height = IntegerField()
 
-    def to_dict(self):
-        return {
-            'hash': self.hash,
-            'created_on': self.created_on,
-            'file_size': self.file_size,
-            'width': self.width,
-            'height': self.height,
-        }
-
-
-class Group(db.Model):
-    id = PrimaryKeyField()
-    name = CharField()
-
-
-class ItemGroup(db.Model):
-    item = ForeignKeyField(Item)
-    group = ForeignKeyField(Group)
+    # Group (optional)
+    group = ForeignKeyField(Group, null=True, related_name='items')
 
 
 class Tag(db.Model):
@@ -140,6 +137,34 @@ def process_uploaded_file(uploaded_file):
     return i
 
 
+def update_tags(item, tags):
+    for tag in tags:
+        # Create or get tag.
+        try:
+            tagobj = Tag.get(Tag.name == tag)
+        except Tag.DoesNotExist:
+            tagobj = Tag.create(name=tag)
+
+        # Create or get the many-to-many relationship
+        try:
+            mtm = ItemTag.get(ItemTag.item == item,
+                              ItemTag.tag == tagobj)
+        except ItemTag.DoesNotExist:
+            mtm = ItemTag.create(item=item, tag=tagobj)
+
+
+def update_group(item, group):
+    # Create or get the group object.
+    try:
+        groupobj = Group.get(Group.name == group)
+    except Group.DoesNotExist:
+        groupobj = Group.create(name=group)
+
+    # Create or get the many-to-many relationship
+    item.group = groupobj
+    item.save()
+
+
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
@@ -157,42 +182,19 @@ def upload():
         group = request.form.get('group')
 
         if tags is not None:
-            for tag in split_tags(tags):
-                # Create or get tag.
-                try:
-                    tagobj = Tag.get(Tag.name == tag)
-                except Tag.DoesNotExist:
-                    tagobj = Tag.create(name=tag)
+            update_tags(i, split_tags(tags))
 
-                # Create or get the many-to-many relationship
-                try:
-                    mtm = ItemTag.get(ItemTag.item == i,
-                                      ItemTag.tag == tagobj)
-                except ItemTag.DoesNotExist:
-                    mtm = ItemTag.create(item=i, tag=tagobj)
-
-        if group is not None:
-            # Create or get the group object.
-            try:
-                groupobj = Group.get(Group.name == group)
-            except Group.DoesNotExist:
-                groupobj = Group.create(name=group)
-
-            # Create or get the many-to-many relationship
-            try:
-                mtm = ItemGroup.get(ItemGroup.item == i,
-                                    ItemGroup.group == groupobj)
-            except ItemGroup.DoesNotExist:
-                mtm = ItemGroup.create(item=i, group=groupobj)
+        if group is not None and len(group) > 0:
+            update_group(i, group)
 
         resp = {
             'name': f.filename,
             'size': i.file_size,
-            'url': url_for('single_item_data', id=i.hash),
+            'url': url_for('single_item', id=i.hash),
             'thumbnailUrl': url_for('single_item_thumb', id=i.hash),
         }
 
-        return jsonify(files=[resp])
+        return jsonify(resp)
     else:
         return render_template('upload.html')
 
@@ -210,16 +212,54 @@ def single_item(id):
             .select()
             .join(ItemTag)
             .join(Item)
-            .where(Item.hash == item.hash))
-    groups = (Group
-              .select()
-              .join(ItemGroup)
-              .join(Item)
-              .where(Item.hash == item.hash))
+            .where(Item.hash == item.hash)
+            .order_by(Tag.name))
+
+    all_tags = join_tags(x.name for x in tags)
+
     return render_template('item.html',
                            item=item,
                            tags=tags,
-                           groups=groups)
+                           all_tags=all_tags)
+
+
+@app.route('/items/<id>/tags', methods=['POST'])
+def edit_item_tags(id):
+    item = get_object_or_404(Item.select(), Item.hash == id)
+    tags = request.form.get('tags')
+    if tags is not None:
+        update_tags(item, split_tags(tags))
+        flash('Tags updated successfully', 'info')
+    else:
+        flash('No tags given', 'warning')
+    return redirect(url_for('single_item', id=id))
+
+
+@app.route('/items/<id>/group', methods=['POST'])
+def edit_item_group(id):
+    item = get_object_or_404(Item.select(), Item.hash == id)
+
+    group = request.form.get('group')
+    if group is not None and len(group) > 0:
+        update_group(group)
+        flash('Group updated successfully', 'info')
+    else:
+        flash('No group given - nothing done', 'warning')
+
+    return redirect(url_for('single_item', id=id))
+
+
+@app.route('/items/<id>/delete', methods=['POST'])
+def delete_item(id):
+    item = get_object_or_404(Item.select(), Item.hash == id)
+    image_store.delete(item.hash)
+    thumb_store.delete(item.hash)
+
+    # TODO: cascade delete ItemTags
+    item.delete_instance()
+
+    flash('Item was successfully deleted', 'info')
+    return redirect(url_for('all_items'))
 
 
 @app.route('/items/<id>/data')
@@ -251,13 +291,31 @@ def single_tag(id):
                        )
 
 
+@app.route('/tags/<int:id>/delete')
+def delete_tag(id):
+    tag = get_object_or_404(Tag.select(), Tag.id == id)
+    tag.delete_instance()
+    # TODO: cascade delete
+    flash('Tag was successfully deleted', 'info')
+    return redirect(url_for('tags'))
+
+
 @app.route('/groups/<int:id>')
 def single_group(id):
     group = get_object_or_404(Group.select(), Group.id == id)
-    items = Item.select().join(ItemGroup).join(Group).where(Group.id == id)
+    items = Item.select().join(Group).where(Group.id == id)
     return object_list('items.html', items,
                        banner="Items in group '%s'" % (group.name,)
                        )
+
+
+@app.route('/tags/<int:id>/delete')
+def delete_group(id):
+    group = get_object_or_404(Group.select(), Group.id == id)
+    group.delete_instance()
+    # TODO: cascade delete
+    flash('Group was successfully deleted', 'info')
+    return redirect(url_for('groups'))
 
 
 @app.route('/groups')

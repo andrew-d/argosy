@@ -39,10 +39,16 @@ class DirectoryStore(object):
         except _FsErrors:
             return None
 
-    def exists(self, key):
-        return os.path.exists(os.path.join(
+    def _path(self, key):
+        return os.path.join(
             self.root,
             key[0:2],
             key[2:4],
             key
-        ))
+        )
+
+    def delete(self, key):
+        os.unlink(self._path(key))
+
+    def exists(self, key):
+        return os.path.exists(self._path(key))

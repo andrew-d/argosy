@@ -28,7 +28,7 @@
   <table id='files-table' class='table table-striped'>
     <thead>
       <tr>
-        <th>#</th>
+        <!-- <th>#</th> -->
         <th>Name</th>
         <th>Size</th>
         <th>Commands</th>
@@ -40,25 +40,6 @@
     <tbody>
     </tbody>
   </table>
-
-  {#
-  <h3>Files Previously Uploaded</h3>
-  <table id='completed-table' class='table table-striped'>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Name</th>
-        <th>Size</th>
-        <th>Commands</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-
-    <!-- Need this for the JS below -->
-    <tbody>
-    </tbody>
-  </table>
-  #}
 
 {% endblock %}
 
@@ -70,88 +51,204 @@
   <script src="{{ url_for('static', filename='js/jquery.fileupload.js') }}"></script>
 
   {# Optional: for image previews and such #}
+  <script src="{{ url_for('static', filename='js/canvas-to-blob.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/load-image.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/jquery.fileupload-process.js') }}"></script>
   <script src="{{ url_for('static', filename='js/jquery.fileupload-image.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.fileupload-audio.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.fileupload-video.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.fileupload-validate.js') }}"></script>
+
+  {# To make the code not suck #}
+  <script src="{{ url_for('static', filename='js/backbone-min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/filesize.min.js') }}"></script>
 
   <script id='table-entry-template' type='text/html'>
-    <tr>
-      <td class='row-number'><%= num %></td>
-      <td><%= file.files[0].name %></td>
-      <td><%= file.files[0].size %></td>
+      <td class='file-name'><%= name %></td>
+      <td class='file-size'><%= filesize(size) %></td>
       <td>
         <button type='button' class='btn btn-danger btn-xs delete-button'>
-          <span class="glyphicon glyphicon-remove"></span> Delete
+          <span class="glyphicon glyphicon-remove"></span> Remove
         </button>
       </td>
-      <td class='upload-status'>Not uploaded</td>
-    </tr>
+      <td class='upload-status'>
+        <% if( status === 'error' ) { %>
+          <span class="label label-danger">Error</span>
+        <% } else if( status === 'uploading' ) { %>
+          <span class="label label-warning">Uploading</span>
+        <% } else if( status === 'uploaded' ) { %>
+          <a href="<%= url %>"><span class="label label-success">Uploaded</span></a>
+        <% } else if( status === 'wait' ) { %>
+          <span class="label label-default">Waiting</span>
+        <% } %>
+      </td>
   </script>
 
   <script>
-    $(function () {
+    var App = {};
+
+    App.TableEntry = Backbone.View.extend({
+        tagName: 'tr',
+
+        events: {
+            'click .delete-button': 'deleteFile',
+        },
+
+        template: _.template($('#table-entry-template').html()),
+
+        initialize: function() {
+            // Re-render when the collection changes.
+            this.listenTo(this.model, 'change', this.render);
+
+            // Remove ourself when the model is removed.
+            this.listenTo(this.model, 'remove', this.remove);
+        },
+
+        render: function() {
+            var stat = '';
+            if( this.model.get('error') ) {
+                stat = 'error';
+            } else if( this.model.get('uploading') ) {
+                stat = 'uploading';
+            } else if( this.model.get('uploaded') ) {
+                stat = 'uploaded';
+            } else {
+                stat = 'wait';
+            }
+
+            this.$el.html(this.template({
+                name:  this.model.escape('name'),
+                size:  this.model.get('size'),
+                url:   this.model.get('url'),
+                status: stat,
+            }));
+            return this;
+        },
+
+        deleteFile: function() {
+            this.trigger('file-deleted', this.model);
+        },
+    });
+
+    App.FileModel = Backbone.Model.extend({
+        defaults: {
+            'ctr': 0,
+            'name': '<unknown>',
+            'size': 0,
+            'uploading': false,
+            'uploaded': false,
+            'error': false,
+        },
+
+        submit: function() {
+            return this.get('data').submit();
+        },
+    });
+
+    App.FileCollection = Backbone.Collection.extend({
+        model: App.FileModel,
+
+        // Keep the files sorted by whether they're uploaded or not.
+        comparator: function(one, two) {
+            var waitingOne = !(one.get('uploading') || one.get('uploaded') || one.get('error')),
+                waitingTwo = !(two.get('uploading') || two.get('uploaded') || two.get('error'));
+
+            if( waitingOne && !waitingTwo ) {
+                return -1;
+            } else if( waitingTwo && !waitingOne ) {
+                return 1;
+            } else {
+                return 0;
+            }
+
+            // Otherwise, sort by global counter.
+            if( one.get('ctr') < two.get('ctr') ) {
+                return -1;
+            } else {
+                return 1;
+            }
+
+            return model.get('index');
+        },
+
+        uploaded: function() {
+            return this.filter(function(file) {
+                return file.get('uploaded') && !file.get('error');
+            });
+        },
+
+        notUploaded: function() {
+            return this.filter(function(file) {
+                return !file.get('uploaded') && !file.get('error') && !file.get('uploading');
+            });
+        },
+
+        errored: function() {
+            return this.filter(function(file) {
+                return file.get('error');
+            });
+        },
+    });
+
+    $(function() {
         'use strict';
 
-        var table_entry_template = _.template($('#table-entry-template').html()),
-            files = [];
+        // Create the collection of files
+        var files = new App.FileCollection();
+        var ctr = 0;
 
+        // When our collection changes, we add a new view.
+        files.on('add', function(file) {
+            var view = new App.TableEntry({ model: file });
+            $('#files-table > tbody:last').append(view.render().el);
 
-        var reNumber = function() {
-            var ctr = 0;
-
-            $('#files-table > tbody > tr').each(function(el) {
-                ctr += 1;
-                $(this).find('td.row-number').html(ctr);
+            view.on('file-deleted', function(file) {
+                files.remove(file);
             });
-        };
+        });
 
-        $('#fileupload').fileupload({
+        var uploader = $('#fileupload').fileupload({
             url: '/upload',
             dataType: 'json',
+            autoUpload: false,
+            acceptFileTypes: /(\.|\/)(gif|jpe?g|png)$/i,
+
+            previewMaxWidth: 100,
+            previewMaxHeight: 100,
+            previewCrop: true,
+
             add: function(e, data) {
-                // Append the file to our array.
-                files.push(data);
+                ctr += 1;
+                data.context = ctr;
 
-                // Create a new table entry.
-                var table_entry = $(table_entry_template({num: files.length, file: data}));
-                $('#files-table > tbody:last').append(table_entry);
-
-                // When the delete button is pushed, remove ourselves..
-                table_entry.find('.delete-button').on('click', function(e) {
-                    e.preventDefault();
-
-                    // Remove from array and from DOM first.
-                    files = _.without(files, data);
-                    $(this).parent().parent().remove();
-
-                    reNumber();
+                var newFile = new App.FileModel({
+                    ctr:  ctr,
+                    name: data.files[0].name,
+                    size: data.files[0].size,
+                    data: data,
                 });
+                files.add(newFile);
             },
+        });
+
+        uploader.on('fileuploadprocessalways', function (e, data) {
+            console.log("Processing finished: " + data.files[data.index].name);
         });
 
         $('#submit').on('click', function(e) {
             e.preventDefault();
-
-            var table_rows = $('#files-table > tbody > tr');
-
-            _.each(files, function(file, i) {
-                var curr_row = $(table_rows[i]);
-
-                curr_row.find('.upload-status').html('Uploading...');
-                file.submit();
-
-                // TODO: errors?
-                curr_row.find('.upload-status').html('Uploaded');
-
-                // TODO: move somewhere else?
-                curr_row.remove();
+            _.each(files.notUploaded(), function(file, i) {
+                file.set('uploading', true);
+                file.submit()
+                  .success(function(result, stat, xhr) {
+                      file.set('url', result.url);
+                      file.set('uploaded', true);
+                  }).error(function(xhr, stat, err) {
+                      file.set('error', true);
+                  }).complete(function(result, stat, xhr) {
+                      file.set('uploading', false);
+                  });
             });
-
-            // Clear all files from the list.
-            files = [];
-
-            // Clear group.
-            $('#group').val('');
         });
     });
   </script>
