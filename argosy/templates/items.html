@@ -4,6 +4,7 @@
   {% if banner is defined %}
     <h3>{{ banner }}</h3>
   {% endif %}
+  <p>Page {{ pagination.get_page() }} of {{ pagination.get_pages() }}</p>
 
   <div class="row">
     {% for item in object_list %}

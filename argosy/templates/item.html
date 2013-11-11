@@ -30,7 +30,9 @@
           <tr>
             <td>Group:</td>
             <td>
-              <a href='{{ url_for('single_group', id=item.group.id) }}'>{{ item.group.name }}</a>
+              {% if item.group %}
+                <a href='{{ url_for('single_group', id=item.group.id) }}'>{{ item.group.name }}</a>
+              {% endif %}
             </td>
           </tr>
 
