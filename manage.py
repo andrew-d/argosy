@@ -150,6 +150,8 @@ def bulk_import(dir, recursive=False,
 # TODO:
 #   - Merge one tag with another
 #   - Merge one group with another
+#   - Modify tags of entire group
+#   -
 
 
 if __name__ == "__main__":

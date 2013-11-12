@@ -1,5 +1,39 @@
 {% extends 'base.html' %}
+
+{% macro pager(prev_item, next_item) %}
+  {% if prev_item or next_item %}
+    <div class='row'>
+      <div class='col-lg-12'>
+        <ul class='pager'>
+          {% if prev_item %}
+            <li class='previous'>
+              <a href="{{ url_for('single_item', id=prev_item.hash) }}">&laquo; Prev</a>
+            </li>
+          {% else %}
+            <li class='previous disabled'>
+              <a>&laquo; Prev</a>
+            </li>
+          {% endif %}
+          {% if next_item %}
+            <li class='next'>
+              <a href="{{ url_for('single_item', id=next_item.hash) }}">Next &raquo;</a>
+            </li>
+          {% else %}
+            <li class='next disabled'>
+              <a>Next &raquo;</a>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+
 {% block content %}
+  {# Prev/next in group #}
+  {{ pager(prev_item, next_item) }}
+
   <div class="row">
     <div class='col-lg-12'>
       {# TODO: make this into proper css? #}
@@ -8,40 +42,7 @@
   </div>
 
   {# Prev/next in group #}
-  {% if prev_item or next_item %}
-    <div class='row'>
-      <div class='col-lg-12'>
-        <ul class='pager'>
-          {% if prev_item %}
-            <li class='previous'>
-              <a href="{{ url_for('single_item', id=prev_item.hash) }}">
-                &laquo; Prev
-              </a>
-            </li>
-          {% else %}
-            <li class='previous disabled'>
-              <a href="#">
-                &laquo; Prev
-              </a>
-            </li>
-          {% endif %}
-          {% if next_item %}
-            <li class='next'>
-              <a href="{{ url_for('single_item', id=next_item.hash) }}">
-                Next &raquo;
-              </a>
-            </li>
-          {% else %}
-            <li class='next disabled'>
-              <a href="#">
-                Next &raquo;
-              </a>
-            </li>
-          {% endif %}
-        </ul>
-      </div>
-    </div>
-  {% endif %}
+  {{ pager(prev_item, next_item) }}
 
   <div class="row">
     <div class='col-lg-12'>
