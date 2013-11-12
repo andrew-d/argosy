@@ -4,22 +4,24 @@
   {% if banner is defined %}
     <h3>{{ banner }}</h3>
   {% endif %}
-  <p>Page {{ pagination.get_page() }} of {{ pagination.get_pages() }}</p>
 
-  <div class="row">
-    {% for item in object_list %}
-      <div class="col-sm-6 col-md-3">
-        <a href="{{ url_for('single_item', id=item.hash) }}" class="thumbnail">
-          <img src="{{ url_for('single_item_thumb', id=item.hash) }}">
-        </a>
-      </div>
-    {% endfor %}
-  </div>
+  {% for row in object_list|batch(12) %}
+    <div class="row">
+      {% for item in row %}
+        <div class="col-xs-6 col-sm-3 col-lg-2">
+          <a href="{{ url_for('single_item', id=item.hash) }}" class="thumbnail" style='min-height: 128px'>
+            <img src="{{ url_for('single_item_thumb', id=item.hash) }}">
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
 
   <ul class="pager">
     {% if page > 1 %}
       <li class="previous"><a href="{{ request.path }}?page={{ page - 1 }}">&larr; Newer</a></li>
     {% endif %}
+    <li class="disabled"><a>Page {{ pagination.get_page() }} of {{ pagination.get_pages() }}</a></li>
     {% if page < pagination.get_pages() %}
       <li class="next"><a href="{{ request.path }}?page={{ page + 1 }}">Older &rarr;</a></li>
     {% endif %}

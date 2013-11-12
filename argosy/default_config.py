@@ -13,4 +13,4 @@ DATABASE = {
     'threadlocals': True
 }
 
-ITEMS_PER_PAGE = 20
+ITEMS_PER_PAGE = 24

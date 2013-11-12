@@ -241,7 +241,8 @@ def upload():
 @app.route('/items')
 def all_items():
     items = Item.select().order_by(Item.created_on.desc())
-    return object_list('items.html', items, banner='All Items')
+    return object_list('items.html', items, banner='All Items',
+                       paginate_by=app.config['ITEMS_PER_PAGE'])
 
 
 # NOTE: order matters for this route, must go before single_item
@@ -256,7 +257,8 @@ def untagged_items():
     # fields that don't match, and then select just those items (i.e. all
     # the items with no matching ItemTag).
     untagged = Item.select().join(ItemTag, JOIN_LEFT_OUTER).where(ItemTag.id >> None)
-    return object_list('items.html', untagged, banner='Untagged Items')
+    return object_list('items.html', untagged, banner='Untagged Items',
+                       paginate_by=app.config['ITEMS_PER_PAGE'])
 
 
 # NOTE: order matters for this route, must go before single_item
@@ -285,16 +287,19 @@ def single_item(id):
     all_tags = join_tags(x.name for x in tags)
 
     # Get the prev/next item in this group.
-    prev_item = (Item
-                 .select()
-                 .where(Item.group == item.group,
-                        Item.group_index == item.group_index - 1)
-                 .first())
-    next_item = (Item
-                 .select()
-                 .where(Item.group == item.group,
-                        Item.group_index == item.group_index + 1)
-                 .first())
+    if item.group is not None:
+        prev_item = (Item
+                     .select()
+                     .where(Item.group == item.group,
+                            Item.group_index == item.group_index - 1)
+                     .first())
+        next_item = (Item
+                     .select()
+                     .where(Item.group == item.group,
+                            Item.group_index == item.group_index + 1)
+                     .first())
+    else:
+        prev_item = next_item = None
 
     return render_template('item.html',
                            item=item,
@@ -371,8 +376,8 @@ def single_tag(id):
     tag = get_object_or_404(Tag.select(), Tag.id == id)
     items = Item.select().join(ItemTag).join(Tag).where(Tag.id == id)
     return object_list('items.html', items,
-                       banner="Items with tag '%s'" % (tag.name,)
-                       )
+                       banner="Items with tag '%s'" % (tag.name,),
+                       paginate_by=app.config['ITEMS_PER_PAGE'])
 
 
 @app.route('/tags/<int:id>/delete')
@@ -389,8 +394,8 @@ def single_group(id):
     group = get_object_or_404(Group.select(), Group.id == id)
     items = Item.select().join(Group).where(Group.id == id)
     return object_list('items.html', items,
-                       banner="Items in group '%s'" % (group.name,)
-                       )
+                       banner="Items in group '%s'" % (group.name,),
+                       paginate_by=app.config['ITEMS_PER_PAGE'])
 
 
 @app.route('/tags/<int:id>/delete')
@@ -452,7 +457,8 @@ def search():
              ))
 
     return object_list('search.html', query,
-                       allOf=allOf, anyOf=anyOf, noneOf=noneOf)
+                       allOf=allOf, anyOf=anyOf, noneOf=noneOf,
+                       paginate_by=app.config['ITEMS_PER_PAGE'])
 
 
 @app.route('/about')
