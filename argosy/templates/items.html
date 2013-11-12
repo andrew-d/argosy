@@ -18,10 +18,10 @@
 
   <ul class="pager">
     {% if page > 1 %}
-      <li class="previous"><a href="./?page={{ page - 1 }}">&larr; Newer</a></li>
+      <li class="previous"><a href="{{ request.path }}?page={{ page - 1 }}">&larr; Newer</a></li>
     {% endif %}
     {% if page < pagination.get_pages() %}
-      <li class="next"><a href="./?page={{ page + 1 }}">Older &rarr;</a></li>
+      <li class="next"><a href="{{ request.path }}?page={{ page + 1 }}">Older &rarr;</a></li>
     {% endif %}
   </ul>
 

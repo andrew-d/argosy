@@ -2,7 +2,8 @@
 {% block content %}
   <div class="row">
     <div class='col-lg-12'>
-      <img src='{{ url_for('single_item_data', id=item.hash) }}' style='max-width:100%'>
+      {# TODO: make this into proper css? #}
+      <img src='{{ url_for('single_item_data', id=item.hash) }}' style='max-width:100%; display: block; margin-left: auto; margin-right: auto;'>
     </div>
   </div>
 
