@@ -25,12 +25,21 @@ def syncdb():
     print("Found %d models" % (len(models),))
 
     print("Synchronizing database...", end='')
-    try:
-        for model in models:
+    for model in models:
+        # Ignore errors while dropping...
+        try:
             model.drop_table()
+        except Exception:
+            pass
+
+        # ... but report them while creating.
+        try:
             model.create_table()
-    except Exception as e:
-        print("Error while creating: %s" % (e,))
+        except Exception as e:
+            print("Error while creating %s: %s" % (
+                model.__name__, e))
+            break
+
     print(" done!")
 
 
