@@ -374,7 +374,12 @@ def tags():
 @app.route('/tags/<int:id>')
 def single_tag(id):
     tag = get_object_or_404(Tag.select(), Tag.id == id)
-    items = Item.select().join(ItemTag).join(Tag).where(Tag.id == id)
+    items = (Item
+             .select()
+             .join(ItemTag)
+             .join(Tag)
+             .where(Tag.id == id)
+             .order_by(Item.created_on.desc()))
     return object_list('items.html', items,
                        banner="Items with tag '%s'" % (tag.name,),
                        paginate_by=app.config['ITEMS_PER_PAGE'])
