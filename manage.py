@@ -84,8 +84,8 @@ def bulk_import(dir, recursive=False,
 
     print("Importing from directory: %s" % (from_dir,))
     if not recursive:
-        for f in os.listdir(from_dir):
-            if is_image_file(f):
+        for f in sorted(os.listdir(from_dir)):
+            if is_image_file(f) and not f.startswith('.'):
                 do_import(
                     os.path.join(from_dir, f),
                     remote,
@@ -94,8 +94,8 @@ def bulk_import(dir, recursive=False,
                 )
     else:
         for root, dirs, files in os.walk(from_dir):
-            for f in files:
-                if is_image_file(f):
+            for f in sorted(files):
+                if is_image_file(f) and not f.startswith('.'):
                     do_import(
                         os.path.join(from_dir, root, f),
                         remote,
