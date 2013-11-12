@@ -26,7 +26,7 @@ from .store import DirectoryStore
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_object('argosy.default_config')
-app.config.from_pyfile('argosy.cfg', silent=True)
+app.config.from_envvar('ARGOSY_CONFIG', silent=True)
 
 db = Database(app)
 image_store = DirectoryStore(app.config['IMAGE_STORE_DIR'])
