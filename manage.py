@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import sys
+import shutil
 import requests
 import datetime
 
@@ -15,7 +16,7 @@ from argosy.app import app, db
 
 
 @baker.command
-def syncdb():
+def reset_data():
     # Find all models.
     models = []
     for attr in dir(argosy.app):
@@ -41,6 +42,21 @@ def syncdb():
             break
 
     print(" done!")
+
+    # Remove directories.
+    if os.path.exists(app.config['IMAGE_STORE_DIR']):
+        print("Removing images directory...", end='')
+        shutil.rmtree(app.config['IMAGE_STORE_DIR'])
+        print(" done!")
+
+    if os.path.exists(app.config['THUMB_STORE_DIR']):
+        print("Removing thumbnails directory...", end='')
+        shutil.rmtree(app.config['THUMB_STORE_DIR'])
+        print(" done!")
+
+    # Create both.
+    os.mkdir(app.config['IMAGE_STORE_DIR'])
+    os.mkdir(app.config['THUMB_STORE_DIR'])
 
 
 @baker.command
