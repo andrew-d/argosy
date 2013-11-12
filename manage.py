@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import argosy
 import argosy.app
 from argosy.app import app, db
+from argosy.natsort import natsorted
 
 
 @baker.command
@@ -94,7 +95,8 @@ def do_import(file_path, server, tags, group):
 @baker.command
 def bulk_import(dir, recursive=False,
                 tags=None, group=None,
-                maxitems=float('inf')
+                maxitems=float('inf'),
+                dryrun=False
                 ):
     from_dir = os.path.abspath(dir)
     class stat(object):
@@ -110,14 +112,15 @@ def bulk_import(dir, recursive=False,
             if fname.startswith('.'):
                 return
 
-            with open(f, 'rb') as new_file:
-                i = argosy.app.process_uploaded_file(new_file)
+            if not dryrun:
+                with open(f, 'rb') as new_file:
+                    i = argosy.app.process_uploaded_file(new_file)
 
-            if tags is not None:
-                argosy.app.update_tags(i, argosy.app.split_tags(tags))
+                if tags is not None:
+                    argosy.app.update_tags(i, argosy.app.split_tags(tags))
 
-            if group is not None and len(group) > 0:
-                argosy.app.update_group(i, group)
+                if group is not None and len(group) > 0:
+                    argosy.app.update_group(i, group)
 
             stat.count += 1
             if stat.count == maxitems:
@@ -129,13 +132,13 @@ def bulk_import(dir, recursive=False,
 
     print("Importing from directory: %s" % (from_dir,))
     if not recursive:
-        for f in sorted(os.listdir(from_dir)):
+        for f in natsorted(os.listdir(from_dir), number_type=None):
             process(os.path.join(from_dir, f))
             if stat.finished:
                 break
     else:
         for root, dirs, files in os.walk(from_dir):
-            for f in sorted(files):
+            for f in natsorted(files, number_type=None):
                 process(os.path.join(from_dir, root, f))
                 if stat.finished:
                     break
