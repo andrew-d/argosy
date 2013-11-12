@@ -194,7 +194,9 @@ def upload():
         if f is None:
             abort(400)
 
-        if not f.mimetype.startswith('image/'):
+        # Abort early for requests that have a bad MIME type, but don't make
+        # this a requirement (for example, when bulk uploading).
+        if f.mimetype and not f.mimetype.startswith('image/'):
             abort(400)
 
         i = process_uploaded_file(f)
