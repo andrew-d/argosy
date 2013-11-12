@@ -86,6 +86,9 @@ class Item(db.Model):
     # Group (optional)
     group = ForeignKeyField(Group, null=True, related_name='items')
 
+    # Index in the group (optional).
+    group_index = IntegerField(null=True)
+
 
 class Tag(db.Model):
     id = PrimaryKeyField()
@@ -113,6 +116,7 @@ def process_uploaded_file(uploaded_file):
 
     uploaded_file.seek(0)
 
+    # TODO: this doesn't even come close to being thread-safe
     try:
         return Item.get(Item.hash == file_hash)
     except Item.DoesNotExist:
@@ -182,8 +186,19 @@ def update_group(item, group):
     except Group.DoesNotExist:
         groupobj = Group.create(name=group)
 
-    # Create or get the many-to-many relationship
+    # TODO: Not even close to thread-safe
+    # Get the maximum group number.
+    max_group_number = (Item
+                        .select(Item.group_index)
+                        .where(Item.group == groupobj)
+                        .order_by(Item.group_index.desc())
+                        .scalar())
+    if max_group_number is None:
+        max_group_number = 0
+
+    # Create or get the relationship
     item.group = groupobj
+    item.group_index = max_group_number + 1
     item.save()
 
 
@@ -269,9 +284,23 @@ def single_item(id):
 
     all_tags = join_tags(x.name for x in tags)
 
+    # Get the prev/next item in this group.
+    prev_item = (Item
+                 .select()
+                 .where(Item.group == item.group,
+                        Item.group_index == item.group_index - 1)
+                 .first())
+    next_item = (Item
+                 .select()
+                 .where(Item.group == item.group,
+                        Item.group_index == item.group_index + 1)
+                 .first())
+
     return render_template('item.html',
                            item=item,
                            tags=tags,
+                           prev_item=prev_item,
+                           next_item=next_item,
                            all_tags=all_tags)
 
 
