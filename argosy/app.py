@@ -1,4 +1,5 @@
 import re
+import random
 import logging
 import hashlib
 import datetime
@@ -92,6 +93,7 @@ class Tag(db.Model):
 
 
 class ItemTag(db.Model):
+    id = PrimaryKeyField()
     item = ForeignKeyField(Item)
     tag = ForeignKeyField(Tag)
 
@@ -223,6 +225,34 @@ def upload():
 def all_items():
     items = Item.select().order_by(Item.created_on.desc())
     return object_list('items.html', items, banner='All Items')
+
+
+# NOTE: order matters for this route, must go before single_item
+@app.route('/items/untagged')
+def untagged_items():
+    # This does:
+    #   SELECT *
+    #   FROM items i
+    #   LEFT JOIN itemtags t ON (i.id = t.id)
+    #   WHERE t.id IS NULL
+    # Effectively, we perform a left outer join, which results in NULLS for
+    # fields that don't match, and then select just those items (i.e. all
+    # the items with no matching ItemTag).
+    untagged = Item.select().join(ItemTag, JOIN_LEFT_OUTER).where(ItemTag.id >> None)
+    return object_list('items.html', untagged, banner='Untagged Items')
+
+
+# NOTE: order matters for this route, must go before single_item
+@app.route('/items/random')
+def random_item():
+    total_items = Item.select(fn.Count(Item)).order_by(Item.hash.asc()).scalar()
+    item_number = random.randrange(0, total_items)
+
+    # Get the nth item.
+    item = Item.select().order_by(Item.hash.asc()).offset(item_number).limit(1).first()
+    if item is None:
+        raise Exception("Random item not found")
+    return redirect(url_for('single_item', id=item.hash))
 
 
 @app.route('/items/<id>')
