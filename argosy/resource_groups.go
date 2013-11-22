@@ -48,7 +48,7 @@ func findGroup(dbmap *gorp.DbMap, name string) *Group {
     }
 }
 
-func createGroup(dbmap *gorp.DbMap, name string) (*Group, bool) {
+func findOrCreateGroup(dbmap *gorp.DbMap, name string) (*Group, bool) {
     group := findGroup(dbmap, name)
     if group != nil {
         return group, false
@@ -119,7 +119,7 @@ func setupGroups(m *martini.ClassicMartini) {
         return http.StatusOK, Jsonify(group)
     })
     m.Post("/groups", func(req *http.Request, dbmap *gorp.DbMap) (int, string) {
-        group, created := createGroup(dbmap, req.FormValue("name"))
+        group, created := findOrCreateGroup(dbmap, req.FormValue("name"))
         if created {
             return http.StatusCreated, Jsonify(group)
         } else {
