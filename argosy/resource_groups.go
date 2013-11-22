@@ -2,8 +2,9 @@ package main
 
 import (
     "github.com/codegangsta/martini"
-    "github.com/jmoiron/sqlx"
+    "github.com/coopernurse/gorp"
     "net/http"
+    "strconv"
 )
 
 type Group struct {
@@ -11,118 +12,55 @@ type Group struct {
     Name string `db:"name"     json:"name"`
 }
 
-func listAllGroups(w http.ResponseWriter, db *sqlx.DB) string {
-    groups := []Group{}
-    err := db.Select(&groups, `SELECT * FROM groups ORDER BY group_id ASC`)
+func listAllGroups(dbmap *gorp.DbMap) []Group {
+    var groups []Group
+    _, err := dbmap.Select(&groups, `SELECT * FROM groups ORDER BY group_id ASC`)
     if err != nil {
         panic(err.Error())
     }
-
-    return JsonResponse{"groups": groups}.String()
+    return groups
 }
 
-func getOneGroup(w http.ResponseWriter, db *sqlx.DB, params martini.Params) (int, string) {
-    // Try to find this group.
-    rows, err := db.NamedQueryMap(`SELECT * FROM groups WHERE group_id = :id`,
-        map[string]interface{}{
-            "id": params["id"],
-        })
+func getOneGroup(dbmap *gorp.DbMap, id int64) *Group {
+    obj, err := dbmap.Get(Group{}, id)
     if err != nil {
         panic(err)
     }
 
-    if rows.Next() {
-        group := Group{}
-        err = rows.StructScan(&group)
-        if err != nil {
-            panic(err)
-        }
-
-        return http.StatusOK, Jsonify(group)
+    if obj == nil {
+        return nil
     } else {
-        // TODO: better error
-        return http.StatusNotFound, JsonResponse{"found": false}.String()
+        return obj.(*Group)
     }
 }
 
-func updateOneGroup(req *http.Request, w http.ResponseWriter, db *sqlx.DB, params martini.Params) string {
-    // Try to find this group.
-    rows, err := db.NamedQueryMap(`SELECT group_id FROM groups WHERE group_id = :id`,
-        map[string]interface{}{
-            "id": params["id"],
-        })
+func findGroup(dbmap *gorp.DbMap, name string) *Group {
+    var test []Group
+    _, err := dbmap.Select(&test, `SELECT * FROM groups WHERE name = `+BindVar(1)+` LIMIT 1`, name)
     if err != nil {
         panic(err)
     }
 
-    if !rows.Next() {
-        // TODO: do we allow directly creating a group that doesn't exist?
-        return JsonResponse{"found": false}.String()
-    }
-
-    name := req.FormValue("name")
-    _, err = db.NamedExecMap(`UPDATE groups SET name = :name WHERE group_id = :id`,
-        map[string]interface{}{
-            "id":   params["id"],
-            "name": name,
-        })
-    if err != nil {
-        panic(err)
-    }
-
-    return JsonResponse{"id": params["id"], "name": name}.String()
-}
-
-func createGroup(req *http.Request, w http.ResponseWriter, db *sqlx.DB) (int, string) {
-    name := req.FormValue("name")
-    rows, err := db.NamedQueryMap(`SELECT * FROM groups WHERE name = :name`,
-        map[string]interface{}{
-            "name": name,
-        })
-    if err != nil {
-        panic(err)
-    }
-
-    var status int
-    group := Group{}
-
-    if rows.Next() {
-        // Already have it!
-        err = rows.StructScan(&group)
-        if err != nil {
-            panic(err)
-        }
-        status = http.StatusConflict
+    if len(test) > 0 {
+        return &test[0]
     } else {
-        // Save name in group, save to DB
-        group.Name = name
-        res, err := db.NamedExec(`INSERT INTO groups (name) VALUES (:name)`, group)
-        if err != nil {
-            panic(err.Error())
-        }
-
-        iid, err := res.LastInsertId()
-        if err != nil {
-            panic(err.Error())
-        }
-        group.Id = iid
-        status = http.StatusCreated
+        return nil
     }
-
-    return status, Jsonify(group)
 }
 
-func deleteGroup(w http.ResponseWriter, db *sqlx.DB, params martini.Params) string {
-    // TODO: this doesn't work, get database locked error
-    _, err := db.NamedExecMap(`DELETE FROM groups WHERE group_id = :id`,
-        map[string]interface{}{
-            "id": params["id"],
-        })
+func createGroup(dbmap *gorp.DbMap, name string) (*Group, bool) {
+    group := findGroup(dbmap, name)
+    if group != nil {
+        return group, false
+    }
+
+    group = &Group{Name: name}
+    err := dbmap.Insert(group)
     if err != nil {
         panic(err)
     }
 
-    return JsonResponse{"id": params["id"], "deleted": true}.String()
+    return group, true
 }
 
 func init() {
@@ -130,9 +68,81 @@ func init() {
 }
 
 func setupGroups(m *martini.ClassicMartini) {
-    m.Get("/groups", listAllGroups)
-    m.Get("/groups/:id", getOneGroup)
-    m.Put("/groups/:id", updateOneGroup)
-    m.Post("/groups", createGroup)
-    m.Delete("/groups/:id", deleteGroup)
+    m.Get("/groups", func(dbmap *gorp.DbMap) string {
+        return JsonResponse{"groups": listAllGroups(dbmap)}.String()
+    })
+    m.Get("/groups/:id", func(dbmap *gorp.DbMap, params martini.Params) (int, string) {
+        id, err := strconv.ParseInt(params["id"], 10, 64)
+        if err != nil {
+            return http.StatusBadRequest, JsonResponse{"error": "bad id"}.String()
+        }
+
+        g := getOneGroup(dbmap, id)
+        if g != nil {
+            return http.StatusOK, Jsonify(g)
+        } else {
+            // TODO: better error
+            return http.StatusNotFound, JsonResponse{"found": false}.String()
+        }
+    })
+    m.Put("/groups/:id", func(req *http.Request, dbmap *gorp.DbMap, params martini.Params) (int, string) {
+        id, err := strconv.ParseInt(params["id"], 10, 64)
+        if err != nil {
+            return http.StatusBadRequest, JsonResponse{"error": "bad id"}.String()
+        }
+
+        group := getOneGroup(dbmap, id)
+        if group == nil {
+            // TODO: better error
+            return http.StatusNotFound, JsonResponse{"found": false}.String()
+        }
+
+        // Do nothing if nothing is to be changed.
+        newName := req.FormValue("name")
+        if newName == group.Name {
+            return http.StatusOK, Jsonify(group)
+        }
+
+        // Check if it already exists
+        existing := findGroup(dbmap, newName)
+        if existing != nil {
+            return http.StatusConflict, Jsonify(existing)
+        }
+
+        // TODO: possible race
+        group.Name = newName
+        _, err = dbmap.Update(group)
+        if err != nil {
+            panic(err)
+        }
+
+        return http.StatusOK, Jsonify(group)
+    })
+    m.Post("/groups", func(req *http.Request, dbmap *gorp.DbMap) (int, string) {
+        group, created := createGroup(dbmap, req.FormValue("name"))
+        if created {
+            return http.StatusCreated, Jsonify(group)
+        } else {
+            return http.StatusConflict, Jsonify(group)
+        }
+    })
+    m.Delete("/groups/:id", func(dbmap *gorp.DbMap, params martini.Params) (int, string) {
+        id, err := strconv.ParseInt(params["id"], 10, 64)
+        if err != nil {
+            return http.StatusBadRequest, JsonResponse{"error": "bad id"}.String()
+        }
+
+        g := &Group{Id: id}
+        count, err := dbmap.Delete(g)
+        if err != nil {
+            panic(err)
+        }
+
+        // We can tell if we deleted anything by the number of rows affected
+        if count == 0 {
+            return http.StatusNotFound, JsonResponse{"found": false}.String()
+        } else {
+            return http.StatusOK, JsonResponse{"id": id, "deleted": true}.String()
+        }
+    })
 }

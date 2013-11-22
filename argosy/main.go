@@ -12,7 +12,7 @@ import (
     _ "github.com/lib/pq"
     _ "github.com/mattn/go-sqlite3"
 
-    "github.com/jmoiron/sqlx"
+    "github.com/coopernurse/gorp"
 )
 
 type Item struct {
@@ -33,6 +33,9 @@ var (
 
     db_dialect = config.String("db.dialect", "sqlite3")
     db_params  = config.String("db.params", "/tmp/test.db")
+
+    // Get the bind variable across dialects
+    BindVar func(int) string
 )
 
 var setupRegistry []func(*martini.ClassicMartini)
@@ -53,27 +56,52 @@ func main() {
     // The main app.
     m := martini.Classic()
 
-    // Inject database
-    db, err := sqlx.Open(*db_dialect, *db_params)
+    // Connect to DB
+    db, err := sql.Open(*db_dialect, *db_params)
     if err != nil {
         panic(err.Error())
     }
     defer db.Close()
-    m.Map(db)
 
-    // Set up schema
-    db.Execf(schema)
+    // Construct DbMap, set up DB params.
+    var dialect gorp.Dialect
+    if "sqlite3" == *db_dialect {
+        dialect = gorp.SqliteDialect{}
+        BindVar = func(i int) string {
+            return "?"
+        }
+    } else if "postgresql" == *db_dialect {
+        dialect = gorp.PostgresDialect{}
+        BindVar = func(i int) string {
+            return fmt.Sprintf("$%d", i)
+        }
+    } else {
+        panic("Bad dialect: " + *db_dialect)
+    }
+    dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
+
+    // Inject db map.
+    m.Map(dbmap)
+
+    // TODO: set up tables better here
+    dbmap.AddTableWithName(Item{}, "items").SetKeys(true, "item_id")
+    dbmap.AddTableWithName(Group{}, "groups").SetKeys(true, "group_id")
+    _, err = dbmap.Exec(schema)
+    if err != nil {
+        panic(err)
+    }
 
     // We return JSON by default.
     m.Use(func(res http.ResponseWriter, req *http.Request) {
         res.Header().Set("Content-Type", "application/json; charset=utf-8")
     })
 
-    // For each route, set it up.
+    // For each resource, set up the routes.
     for _, f := range setupRegistry {
         f(m)
     }
 
+    // Start server.
     fmt.Printf("[martini] Listening on %s:%d\n", *host, *port)
     http.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), m)
 }
