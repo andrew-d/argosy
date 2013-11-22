@@ -37,6 +37,10 @@ var (
 
 var setupRegistry []func(*martini.ClassicMartini)
 
+func registerInit(f func(*martini.ClassicMartini)) {
+    setupRegistry = append(setupRegistry, f)
+}
+
 func main() {
     // If we have a configuration variable given, read and parse it.
     config_path := os.Getenv("ARGOSY_CONFIG")

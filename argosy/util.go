@@ -7,7 +7,11 @@ import (
 type JsonResponse map[string]interface{}
 
 func (r JsonResponse) String() string {
-    b, err := json.Marshal(r)
+    return Jsonify(r)
+}
+
+func Jsonify(obj interface{}) string {
+    b, err := json.Marshal(obj)
     if err != nil {
         return ""
     }
