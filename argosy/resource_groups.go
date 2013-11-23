@@ -12,7 +12,7 @@ type Group struct {
     Name string `db:"name"     json:"name"`
 }
 
-func listAllGroups(dbmap *gorp.DbMap) []Group {
+func getAllGroups(dbmap *gorp.DbMap) []Group {
     var groups []Group
     _, err := dbmap.Select(&groups, `SELECT * FROM groups ORDER BY group_id ASC`)
     if err != nil {
@@ -54,6 +54,8 @@ func findOrCreateGroup(dbmap *gorp.DbMap, name string) (*Group, bool) {
         return group, false
     }
 
+    // TODO: this is a race condition - perhaps insert and see if a unique
+    // constraint is violated?
     group = &Group{Name: name}
     err := dbmap.Insert(group)
     if err != nil {
@@ -69,7 +71,7 @@ func init() {
 
 func setupGroups(m *martini.ClassicMartini) {
     m.Get("/groups", func(dbmap *gorp.DbMap) string {
-        return JsonResponse{"groups": listAllGroups(dbmap)}.String()
+        return JsonResponse{"group": getAllGroups(dbmap)}.String()
     })
     m.Get("/groups/:id", func(dbmap *gorp.DbMap, params martini.Params) (int, string) {
         id, err := strconv.ParseInt(params["id"], 10, 64)
@@ -109,7 +111,7 @@ func setupGroups(m *martini.ClassicMartini) {
             return http.StatusConflict, Jsonify(existing)
         }
 
-        // TODO: possible race
+        // TODO: possible race condition
         group.Name = newName
         _, err = dbmap.Update(group)
         if err != nil {

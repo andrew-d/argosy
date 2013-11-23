@@ -15,18 +15,6 @@ import (
     "github.com/coopernurse/gorp"
 )
 
-type Item struct {
-    Hash       string `db:"item_id"     json:"id"`
-    CreatedOn  int64  `db:"created_on"  json:"created_on"`
-    FileSize   int64  `db:"file_size"   json:"file_size"`
-    Width      int    `db:"width"       json:"width"`
-    Height     int    `db:"height"      json:"height"`
-    IsAnimated bool   `db:"is_animated" json:"is_animated"`
-
-    GroupId    sql.NullInt64 `db:"group_id"    json:"group_id"`
-    GroupIndex sql.NullInt64 `db:"group_index" json:"group_index"`
-}
-
 var (
     host = config.String("host", "localhost")
     port = config.Int("port", 8000)
@@ -84,11 +72,13 @@ func main() {
     m.Map(dbmap)
 
     // TODO: set up tables better here
-    dbmap.AddTableWithName(Item{}, "items").SetKeys(true, "item_id")
+    dbmap.AddTableWithName(Item{}, "items").SetKeys(false, "hash")
     dbmap.AddTableWithName(Group{}, "groups").SetKeys(true, "group_id")
-    _, err = dbmap.Exec(schema)
-    if err != nil {
-        panic(err)
+    for _, stmt := range(schema) {
+        _, err = dbmap.Exec(stmt)
+        if err != nil {
+            panic(err)
+        }
     }
 
     // We return JSON by default.
