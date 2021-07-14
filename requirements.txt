@@ -4,7 +4,7 @@ Jinja2==2.7.1
 MarkupSafe==0.18
 Pillow==2.2.1
 WTForms==1.0.5
-Werkzeug==0.9.4
+Werkzeug==0.15.3
 arrow==0.4.2
 flask-peewee==0.6.5
 itsdangerous==0.23
